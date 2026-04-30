@@ -63,6 +63,34 @@ export const NPCS = {
     },
   },
 
+  julien_ghost: {
+    id: "julien_ghost",
+    names: ["julien", "ghost", "spirit", "master julien", "brother"],
+    short: "the spirit of Master Julien",
+    desc:
+      "Master Julien stands at the writing-shelf, scholarly and slight, the wound at his " +
+      "ribs translucent. He is patient as only a man with no rest can be.",
+    takeable: false,
+    dialogue: {
+      default: "He says, 'My letter-opener, brother. I never wrote with it. He used it on me.'",
+      will: "'Pemberton drew up the codicil himself. My brother signed in trust. I told him not to.'",
+      edmund: "'Trust was always his weakness. He thought lawyers were honest because they wore black.'",
+      killer: "'A man of the law. His cuffs were always inked. He hated the letter R, because it stood at the front of his own first name.'",
+      letter: "'R for his proper Christian name, which he resented. I wrote it once on the blade in jest. He took the blade with him. So he took the joke.'",
+    },
+    onShow(state, itemId) {
+      if (itemId === "silver_letter_opener" || itemId === "julien_diary") {
+        if (state.flags.julienReleased) return "Julien is at peace. There is nothing left to show him.";
+        state.flags.julienReleased = true;
+        return [
+          "He looks at it long and gently. 'Yes. That is the blade. Tell my brother — tell Edmund, when you find him on the other side — that I bore him no grudge.'",
+          "He fades, like a candle flame leaning into a draught.",
+        ];
+      }
+      return null;
+    },
+  },
+
   black_cat: {
     id: "black_cat",
     names: ["cat", "black cat", "kitten"],

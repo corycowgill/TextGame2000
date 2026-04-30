@@ -129,6 +129,7 @@ export const ROOMS = {
       west: "dining_room",
       east: "study",
       northeast: "east_corridor",
+      northwest: "west_corridor",
     },
     contents: ["grandfather_clock", "black_cat"],
     onCommand(state, cmd) {
@@ -152,15 +153,18 @@ export const ROOMS = {
           return "The executor's seals carry the law's weight. To defy them you'll need evidence — proof in your hand — that the executor is a forger.";
         }
         const which = (cmd.noun || "").toLowerCase();
-        const wantEast = which.includes("east") || (!which.includes("west") && !state.flags.eastSealBroken);
-        const wantWest = which.includes("west");
-        if (wantWest && !state.flags.westSealBroken) {
-          state.flags.westSealBroken = true;
-          return "You press a thumb to the west wing seal. With the burnt will in your other hand, the gesture has a kind of authority. The wax cracks; the doors fall open.";
-        }
+        const isEastReq = which.includes("east");
+        const isWestReq = which.includes("west");
+        // No qualifier => break whichever is still intact, east first.
+        const wantEast = isEastReq || (!isWestReq && !state.flags.eastSealBroken);
+        const wantWest = isWestReq || (!isEastReq && state.flags.eastSealBroken && !state.flags.westSealBroken);
         if (wantEast && !state.flags.eastSealBroken) {
           state.flags.eastSealBroken = true;
           return "You press a thumb to the east wing seal. With the burnt will in your other hand, the gesture has a kind of authority. The wax cracks; the doors fall open.";
+        }
+        if (wantWest && !state.flags.westSealBroken) {
+          state.flags.westSealBroken = true;
+          return "You press your other thumb to the west wing seal. The wax cracks like old bread; the doors fall open onto a wallpapered dark.";
         }
         return "That seal is already broken.";
       }
@@ -260,5 +264,87 @@ export const ROOMS = {
       "A locked drawer in the desk seems to want examining. The foyer lies west.",
     exits: { west: "foyer" },
     contents: ["edmund_body", "desk_drawer", "brass_lamp"],
+  },
+
+  // ---------------- Region 2: West Wing ----------------
+
+  west_corridor: {
+    id: "west_corridor",
+    name: "The West Corridor",
+    short: "A corridor in the west wing.",
+    long:
+      "Damask wallpaper here is the colour of dried roses. The corridor opens north into " +
+      "Edmund's library and west into the long portrait gallery. The foyer lies south-east.",
+    exits: {
+      southeast: "foyer",
+      north: "library",
+      west: "portrait_gallery",
+    },
+    contents: [],
+  },
+
+  library: {
+    id: "library",
+    name: "The Library",
+    short: "Edmund's private library.",
+    long:
+      "Floor-to-ceiling shelves of leather spines: legal commentaries, estate ledgers, " +
+      "and one shelf of poetry that does not match the rest. A reading chair sits angled " +
+      "to a cold fire. The corridor is south.",
+    exits: { south: "west_corridor" },
+    contents: ["legal_books", "poetry_shelf"],
+  },
+
+  portrait_gallery: {
+    id: "portrait_gallery",
+    name: "The Portrait Gallery",
+    short: "A long gallery of family portraits.",
+    long(state) {
+      const base =
+        "A long gallery, wood-panelled, hung with four oil portraits in heavy gilt frames. " +
+        "Each plaque bears a name and, beneath it, a date and cause: the dates are all this " +
+        "year; the causes vary. A polished bench runs the length of the gallery. The " +
+        "corridor is east.";
+      const passage = state.flags.passageOpened
+        ? " A panel behind Edmund's portrait has swung inward; an unlit passage opens north."
+        : "";
+      return base + passage;
+    },
+    exits: { east: "west_corridor" },
+    contents: ["portrait_cassandra_2", "portrait_julien", "portrait_beatrice", "portrait_edmund"],
+    onEnter(state) {
+      // Reconcile exits with flag state (handles save/load of an opened passage).
+      if (state.flags.passageOpened) this.exits.north = "hidden_passage";
+    },
+    onCommand(state, cmd) {
+      // Late binding: dynamically expose north exit to hidden_passage when puzzle solved.
+      // (Engine reads .exits[direction] each move, so we mutate exits here on first solve.)
+      const all = state.flags.examinedCassandraPortrait && state.flags.examinedJulienPortrait
+                && state.flags.examinedBeatricePortrait && state.flags.examinedEdmundPortrait;
+      if (cmd.verb === "push" || cmd.verb === "pull" || cmd.verb === "move") {
+        const noun = (cmd.noun || "").toLowerCase();
+        if (noun.includes("edmund") || noun.includes("portrait")) {
+          if (!all) return "The portrait does not move. (You have the feeling you have not yet seen all four with proper attention.)";
+          if (state.flags.passageOpened) return "The panel behind Edmund's portrait already stands open.";
+          state.flags.passageOpened = true;
+          this.exits.north = "hidden_passage";
+          return "Edmund's portrait swings inward on a hidden hinge, revealing a narrow panelled passage beyond. Cold air sighs out.";
+        }
+      }
+      return null;
+    },
+  },
+
+  hidden_passage: {
+    id: "hidden_passage",
+    name: "The Hidden Passage",
+    short: "A narrow passage behind the portraits.",
+    long:
+      "A panelled servants' passage, scarcely wide enough for a man's shoulders. Dust on " +
+      "the floor lies thick except for a single set of recent footprints — out, not in. A " +
+      "small writing-shelf is set into the wainscoting, with a leather diary and a silver " +
+      "letter opener resting on its surface.",
+    exits: { south: "portrait_gallery" },
+    contents: ["julien_diary", "silver_letter_opener", "julien_ghost"],
   },
 };

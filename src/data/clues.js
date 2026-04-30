@@ -50,6 +50,22 @@ export const HINTS = [
     when: (s) => s.tokensCollected.includes("teacup_token") && !s.flags.letterD_east,
     text: "The maze's stone folly has a sundial. Examine it.",
   },
+  {
+    when: (s) => s.flags.westSealBroken && !s.visited.has("portrait_gallery"),
+    text: "The west wing is open. The portrait gallery lies west of the corridor.",
+  },
+  {
+    when: (s) => s.visited.has("portrait_gallery") && !(s.flags.examinedCassandraPortrait && s.flags.examinedJulienPortrait && s.flags.examinedBeatricePortrait && s.flags.examinedEdmundPortrait),
+    text: "Examine each of the four portraits in turn. Each plaque tells a story.",
+  },
+  {
+    when: (s) => s.flags.examinedCassandraPortrait && s.flags.examinedJulienPortrait && s.flags.examinedBeatricePortrait && s.flags.examinedEdmundPortrait && !s.flags.passageOpened,
+    text: "Edmund's portrait is hung askew. Try `push edmund portrait` (or `move portrait`).",
+  },
+  {
+    when: (s) => s.flags.passageOpened && !s.tokensCollected.includes("letter_opener_token"),
+    text: "Inside the hidden passage: read the diary, then take the letter opener.",
+  },
 ];
 
 // Notebook: clues are auto-recorded by the engine when flags are set.
@@ -61,6 +77,9 @@ export const NOTEBOOK_ENTRIES = [
   { flag: "readWillFragment", text: "The will fragment names 'Pemberton Dredge, Solr.' as residual heir. Forged after death — Mrs. Crow's slate confirms the timing." },
   { flag: "cassandraReleased", text: "Lady Cassandra was poisoned with monkshood, served as tea. She names Pemberton Dredge as the hand that poured the cup." },
   { flag: "letterD_east", text: "Stone folly sundial: letter D etched at the centre. (First initial.)" },
+  { flag: "readJulienDiary", text: "Julien's diary: 'his cuffs are inked with R — too proud of his own initial to disguise it.' The killer's first name begins with R." },
+  { flag: "julienReleased", text: "Julien Ashvale was stabbed with the silver letter opener by 'a man of the law' whose first name begins with R." },
+  { flag: "letterR_west", text: "Silver letter opener: engraved with the capital R. (Second initial.)" },
 ];
 
 // Killer-name letter accumulator. Set by region puzzles.

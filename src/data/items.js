@@ -317,6 +317,115 @@ export const ITEMS = {
     takeable: true,
   },
 
+  // ---- Region 2: West Wing ----
+
+  legal_books: {
+    id: "legal_books",
+    names: ["legal books", "books", "commentaries", "ledgers"],
+    short: "shelves of legal commentaries",
+    desc:
+      "Halsbury, Coke, Blackstone — and one ledger entitled simply 'Ashvale, Estate.' " +
+      "On its spine, in fresher ink, an addendum: 'Codicil — P. Dredge, Solr., 1888.' " +
+      "Edmund kept his lawyers close.",
+    takeable: false,
+  },
+
+  poetry_shelf: {
+    id: "poetry_shelf",
+    names: ["poetry", "poetry shelf", "shelf"],
+    short: "a shelf of poetry that does not match the rest",
+    desc:
+      "Tennyson, Browning, Rossetti — and one slim volume bound in green cloth that has " +
+      "no author. The frontispiece, in Edmund's hand: 'For my brother, who reads what I write.'",
+    takeable: false,
+  },
+
+  portrait_cassandra_2: {
+    id: "portrait_cassandra_2",
+    names: ["cassandra portrait gallery", "cassandra gallery", "first portrait", "lady cassandra portrait"],
+    short: "Lady Cassandra's portrait (gallery)",
+    desc: "Lady Cassandra in pearl-grey silk. The plaque: 'Cassandra Ashvale — d. 1888 — by misadventure with tea.'",
+    takeable: false,
+    onExamine(state) { state.flags.examinedCassandraPortrait = true; return null; },
+  },
+
+  portrait_julien: {
+    id: "portrait_julien",
+    names: ["julien portrait", "julien", "second portrait", "master portrait"],
+    short: "Master Julien's portrait",
+    desc: "Master Julien Ashvale, Edmund's younger brother, in scholar's robes. The plaque: 'Julien Ashvale — d. 1888 — of a regrettable accident with paper-knife.'",
+    takeable: false,
+    onExamine(state) { state.flags.examinedJulienPortrait = true; return null; },
+  },
+
+  portrait_beatrice: {
+    id: "portrait_beatrice",
+    names: ["beatrice portrait", "beatrice", "child portrait", "third portrait"],
+    short: "Beatrice's portrait",
+    desc: "Beatrice, aged eight, in white pinafore, holding a doll. The plaque: 'Beatrice Ashvale — d. 1888 — taken in her sleep.'",
+    takeable: false,
+    onExamine(state) { state.flags.examinedBeatricePortrait = true; return null; },
+  },
+
+  portrait_edmund: {
+    id: "portrait_edmund",
+    names: ["edmund portrait", "fourth portrait", "lord portrait", "lord edmund portrait"],
+    short: "Lord Edmund's portrait",
+    desc(state) {
+      const base = "Lord Edmund Ashvale, in black, looking out at his own family with the unease of a man already pricing the cost of them. The plaque, freshly painted: 'Edmund Ashvale — d. 1888 — at his desk.'";
+      const tail = state.flags.examinedCassandraPortrait && state.flags.examinedJulienPortrait && state.flags.examinedBeatricePortrait
+        ? " The frame sits a half-inch askew. You could push it aside."
+        : "";
+      return base + tail;
+    },
+    takeable: false,
+    onExamine(state) { state.flags.examinedEdmundPortrait = true; return null; },
+  },
+
+  julien_diary: {
+    id: "julien_diary",
+    names: ["diary", "julien diary", "leather diary", "journal"],
+    short: "a leather diary",
+    desc: "A small diary, half-filled. The last page is dated the night of the murders.",
+    takeable: true,
+    onRead(state) {
+      state.flags.readJulienDiary = true;
+      return [
+        "From the last page:",
+        "  '... He came again to the library tonight, with the codicil. I told my brother",
+        "  he should not sign. The man's cuffs are inked with R — too proud of his own",
+        "  initial to disguise it. If he comes for me, the letter-opener on this shelf",
+        "  is the only weapon I shall ever have used.'",
+      ];
+    },
+  },
+
+  silver_letter_opener: {
+    id: "silver_letter_opener",
+    names: ["letter opener", "opener", "silver letter opener", "knife", "blade", "letter-opener token"],
+    short: "a silver letter opener",
+    desc:
+      "A slim silver letter opener, its blade darkened along one edge with what is plainly " +
+      "old blood. The handle is engraved with a single capital R in copperplate.",
+    takeable: true,
+    onCommand(state, cmd) {
+      if (cmd.verb === "take") {
+        if (state.tokensCollected.includes("letter_opener_token")) return null; // default take
+        state.tokensCollected.push("letter_opener_token");
+        state.flags.letterR_west = true;
+        // Take normally as well.
+        const r = ROOMS["hidden_passage"];
+        r.contents = (r.contents || []).filter((x) => x !== "silver_letter_opener");
+        state.inventory.push("silver_letter_opener");
+        return [
+          "You take up the letter opener. The blood on the blade is dry; the silver beneath is bright. The R on the handle, in copperplate, is a man's hand turned inward.",
+          "(You have recovered the Letter-Opener Token. You note the letter R in your book — second of four.)",
+        ];
+      }
+      return null;
+    },
+  },
+
   brass_lamp: {
     id: "brass_lamp",
     names: ["lamp", "brass lamp", "oil lamp", "lantern"],
