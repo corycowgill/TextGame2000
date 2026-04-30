@@ -47,7 +47,7 @@ export const ROOMS = {
       "front of the house lies west; gravel paths circle further east into the hedge maze, " +
       "though those gates appear bound shut from inside.",
     exits: { west: "front_door", north: "drawing_room_via_window", east: null },
-    contents: ["loose_stone"],
+    contents: ["loose_stone", "garden_window"],
     onCommand(state, cmd) {
       if (cmd.verb === "open" && cmd.noun && cmd.noun.includes("window")) {
         if (state.flags.windowOpened) return "The window is already open.";

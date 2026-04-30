@@ -1,6 +1,17 @@
 // Items: { id, names: [aliases], short, desc, flags, takeable, onUse?, onExamine?, onRead? }
 // "names" includes every word the parser might match against. The first entry is canonical.
 
+import { ROOMS } from "./rooms.js";
+
+const cap = (s) => (s ? s[0].toUpperCase() + s.slice(1) : s);
+
+function placeInRoom(roomId, itemId) {
+  const r = ROOMS[roomId];
+  if (!r) return;
+  r.contents = r.contents || [];
+  if (!r.contents.includes(itemId)) r.contents.push(itemId);
+}
+
 export const ITEMS = {
   // ---- Region 0 ----
 
@@ -15,6 +26,17 @@ export const ITEMS = {
       "  WILL CONTESTED STOP HOUSEHOLD WILL NOT SPEAK OF IT STOP\n" +
       "  YOUR DISCRETION TRUSTED STOP P DREDGE SOLR STOP",
     takeable: true,
+  },
+
+  garden_window: {
+    id: "garden_window",
+    names: ["window", "drawing-room window", "drawing room window", "sash"],
+    short: "the drawing-room window",
+    desc(state) {
+      if (state.flags.windowOpened) return "The window stands open. The sash slides easily now.";
+      return "A tall sash window into the drawing room. The catch is broken; with a heavy stone, you could break the pane outright, or you could simply force the sash up.";
+    },
+    takeable: false,
   },
 
   loose_stone: {
@@ -93,31 +115,85 @@ export const ITEMS = {
     id: "edmund_body",
     names: ["edmund", "body", "corpse", "lord", "ashvale"],
     short: "Lord Edmund's body",
-    desc:
-      "Lord Edmund Ashvale, sixty and gaunt, sits at his desk with the stillness only the " +
-      "dead achieve. There is no wound you can see. His pocket watch, half-out of the " +
-      "waistcoat, has stopped at 11:47. A faint smell of bitter almonds rises from the " +
-      "brandy glass at his elbow — though he has not drunk a drop.",
+    desc(state) {
+      const base =
+        "Lord Edmund Ashvale, sixty and gaunt, sits at his desk with the stillness only the " +
+        "dead achieve. There is no wound you can see. His pocket watch, half-out of the " +
+        "waistcoat, has stopped at 11:47. A faint smell of bitter almonds rises from the " +
+        "brandy glass at his elbow — though he has not drunk a drop.";
+      if (state.flags.foundFobKey) return base;
+      return base + " A small fob key dangles on the watch chain.";
+    },
     takeable: false,
+    onCommand(state, cmd) {
+      if (cmd.verb === "search") {
+        if (state.flags.foundFobKey) {
+          return "You have already found the fob key. The body has nothing more to give you.";
+        }
+        state.flags.foundFobKey = true;
+        state.inventory.push("fob_key");
+        return "You search Edmund. On the watch chain, beside the stopped timepiece, is a small steel fob key. You take it.";
+      }
+      if (cmd.verb === "take" && (cmd.noun === "watch" || cmd.noun === "pocket watch" || cmd.noun === "fob" || cmd.noun === "key" || cmd.noun === "fob key")) {
+        if (state.flags.foundFobKey) return "You already took the fob key.";
+        state.flags.foundFobKey = true;
+        state.inventory.push("fob_key");
+        return "You free the fob key from the watch chain. The watch itself you leave to its stopped hour.";
+      }
+      return null;
+    },
+  },
+
+  fob_key: {
+    id: "fob_key",
+    names: ["fob key", "fob", "small key", "steel key"],
+    short: "a small steel fob key",
+    desc: "A small steel key, no bigger than a thumbnail, polished by years of waistcoat pocket. Edmund's, beyond doubt.",
+    takeable: true,
   },
 
   desk_drawer: {
     id: "desk_drawer",
     names: ["drawer", "desk drawer", "desk"],
     short: "a locked desk drawer",
-    desc:
-      state =>
-        state.flags.drawerOpened
-          ? "The drawer hangs open. Inside lay the keyring you have already taken (and a depression in the velvet where something else once lay)."
-          : "The drawer is locked. The keyhole is small — a personal key, the kind a man keeps on his own person.",
+    desc(state) {
+      if (state.flags.drawerOpened) {
+        return "The drawer hangs open. The velvet lining bears two impressions: one where the household keyring lay, and one where something rectangular — a folded paper — once rested.";
+      }
+      return "The drawer is locked with a small, particular keyhole — the kind that wants a personal key, not a household one.";
+    },
     takeable: false,
+    onUnlock(state, keyId) {
+      if (state.flags.drawerOpened) return "The drawer is already open.";
+      if (keyId !== "fob_key") {
+        return `${cap(ITEMS[keyId].short)} will not turn in this lock.`;
+      }
+      state.flags.drawerOpened = true;
+      placeInRoom("study", "edmund_keyring");
+      placeInRoom("study", "will_fragment");
+      return [
+        "The fob key turns. The drawer slides open.",
+        "Inside: a heavy iron keyring, and a half-burnt fragment of paper — the corner of a will, with a notary's seal still legible at one edge.",
+      ];
+    },
     onCommand(state, cmd) {
-      if (cmd.verb === "open" || (cmd.verb === "unlock" && (!cmd.secondNoun || cmd.secondNoun.includes("key") === false))) {
-        if (state.flags.drawerOpened) return "The drawer is already open.";
+      if (cmd.verb === "open" && !state.flags.drawerOpened) {
         return "The drawer is locked. You'll need a key — and Edmund kept his own keys close.";
       }
-      if (cmd.verb === "search" || cmd.verb === "examine") return null;
+      if (cmd.verb === "open" && state.flags.drawerOpened) return "The drawer is already open.";
       return null;
+    },
+  },
+
+  will_fragment: {
+    id: "will_fragment",
+    names: ["will", "will fragment", "fragment", "paper", "burnt paper"],
+    short: "a half-burnt fragment of a will",
+    desc: "Most of the page is gone to char, but the lower right corner remains. The notary's seal is intact: a wax disc stamped P. DREDGE, SOLR. The line above the seal reads, in copperplate: '...and to the said Pemberton Dredge, the residue of my estate.'",
+    takeable: true,
+    onRead(state) {
+      state.flags.readWillFragment = true;
+      return "You read what survives:\n  '...and to the said Pemberton Dredge, the residue of my estate.'\n  Sealed: P. DREDGE, SOLR.";
     },
   },
 

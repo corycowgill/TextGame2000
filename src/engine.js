@@ -144,7 +144,6 @@ function enterRoom(roomId, silent = false) {
       const result = r.onEnter(state) || {};
       if (result.redirect) {
         if (result.message) render.print(result.message);
-        if (result.silent || silent) silent = true;
         target = result.redirect;
         continue;
       }
@@ -243,6 +242,164 @@ function vWait() {
   return "Time passes.";
 }
 
+function vRead(cmd) {
+  if (!cmd.noun) return "Read what?";
+  const res = resolveNoun(cmd.noun);
+  if (res.kind === "none") return `You see no ${cmd.noun} to read.`;
+  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
+  if (res.kind === "npc") return "That is not something you can read.";
+  state.lastNoun = cmd.noun;
+  const it = ITEMS[res.ids[0]];
+  if (it.onRead) {
+    const out = it.onRead(state);
+    if (out != null) return out;
+  }
+  // Fall back to the description if it's at all readable.
+  return `There is nothing written on ${it.short}.`;
+}
+
+function vSearch(cmd) {
+  if (!cmd.noun) return "Search what?";
+  const res = resolveNoun(cmd.noun);
+  if (res.kind === "none") return `You see no ${cmd.noun} here.`;
+  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
+  state.lastNoun = cmd.noun;
+  // Items/NPCs may handle search via onCommand; default falls through to examine.
+  return vExamine(cmd);
+}
+
+function vUnlock(cmd) {
+  if (!cmd.noun) return "Unlock what?";
+  if (!cmd.secondNoun) return `Unlock ${cmd.noun} with what?`;
+  // Resolve target (the thing being unlocked).
+  const res = resolveNoun(cmd.noun);
+  if (res.kind === "none") return `You see no ${cmd.noun} here.`;
+  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
+  state.lastNoun = cmd.noun;
+  // Resolve key (must be in inventory).
+  const keyIds = matchNoun(cmd.secondNoun, inventoryItems(), ITEMS);
+  if (keyIds.length === 0) return `You are not carrying any ${cmd.secondNoun}.`;
+  if (keyIds.length > 1) return disambiguate(cmd.secondNoun, keyIds);
+
+  // Routing: target's onUnlock(keyId) > target's onCommand > default refusal.
+  const targetId = res.ids[0];
+  const target = ITEMS[targetId];
+  if (target && target.onUnlock) {
+    const out = target.onUnlock(state, keyIds[0]);
+    if (out != null) return out;
+  }
+  if (target && target.onCommand) {
+    const out = target.onCommand(state, cmd);
+    if (out != null) return out;
+  }
+  return `${capFirst(target.short)} does not yield to ${ITEMS[keyIds[0]].short}.`;
+}
+
+function vBreak(cmd) {
+  if (!cmd.noun) return "Break what?";
+  // Route to room/item onCommand; engine has no generic break behavior.
+  const r = room();
+  if (r.onCommand) {
+    const out = r.onCommand(state, cmd);
+    if (out != null) return out;
+  }
+  return "Some things resist breaking, and this is one of them.";
+}
+
+function vTalk(cmd) {
+  if (!cmd.noun) return "Talk to whom?";
+  const res = resolveNoun(cmd.noun);
+  if (res.kind === "none") return `There is no ${cmd.noun} here.`;
+  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
+  if (res.kind !== "npc") return "You receive no reply (and feel briefly foolish).";
+  state.lastNoun = cmd.noun;
+  const npc = NPCS[res.ids[0]];
+  if (npc.onTalk) {
+    const out = npc.onTalk(state);
+    if (out != null) return out;
+  }
+  return (npc.dialogue && npc.dialogue.default) || `${capFirst(npc.short)} regards you in silence.`;
+}
+
+function vAsk(cmd) {
+  if (!cmd.noun) return "Ask whom?";
+  if (!cmd.secondNoun) return `Ask ${cmd.noun} about what?`;
+  const res = resolveNoun(cmd.noun);
+  if (res.kind === "none") return `There is no ${cmd.noun} here.`;
+  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
+  if (res.kind !== "npc") return "You cannot interrogate the furniture.";
+  state.lastNoun = cmd.noun;
+  const npc = NPCS[res.ids[0]];
+  const topic = cmd.secondNoun.toLowerCase().trim();
+  if (npc.onAsk) {
+    const out = npc.onAsk(state, topic);
+    if (out != null) return out;
+  }
+  if (npc.dialogue) {
+    // Match topic against dialogue keys (substring on either side).
+    for (const key of Object.keys(npc.dialogue)) {
+      if (key === "default") continue;
+      if (topic.includes(key) || key.includes(topic)) return npc.dialogue[key];
+    }
+  }
+  return `${capFirst(npc.short)} has nothing to say about that.`;
+}
+
+function vSay(cmd) {
+  const word = (cmd.noun || cmd.secondNoun || "").trim();
+  if (!word) return "Say what?";
+  state.lastNoun = word;
+  // Rooms can intercept `say` for ritual/finale logic.
+  const r = room();
+  if (r.onCommand) {
+    const out = r.onCommand(state, cmd);
+    if (out != null) return out;
+  }
+  return `Your voice carries through the rooms and is answered only by silence.`;
+}
+
+function vShow(cmd) {
+  if (!cmd.noun) return "Show what?";
+  if (!cmd.secondNoun) return `Show ${cmd.noun} to whom?`;
+  const itemIds = matchNoun(cmd.noun, inventoryItems(), ITEMS);
+  if (itemIds.length === 0) return `You are not carrying any ${cmd.noun}.`;
+  if (itemIds.length > 1) return disambiguate(cmd.noun, itemIds);
+  const { npcs } = visibleEntities();
+  const npcIds = matchNoun(cmd.secondNoun, npcs, NPCS);
+  if (npcIds.length === 0) return `There is no ${cmd.secondNoun} here.`;
+  if (npcIds.length > 1) return disambiguate(cmd.secondNoun, npcIds);
+  state.lastNoun = cmd.noun;
+  const npc = NPCS[npcIds[0]];
+  if (npc.onShow) {
+    const out = npc.onShow(state, itemIds[0]);
+    if (out != null) return out;
+  }
+  return `${capFirst(npc.short)} regards ${ITEMS[itemIds[0]].short} without comment.`;
+}
+
+function vGive(cmd) {
+  // Identical plumbing to vShow; routes via onGive then falls back.
+  if (!cmd.noun) return "Give what?";
+  if (!cmd.secondNoun) return `Give ${cmd.noun} to whom?`;
+  const itemIds = matchNoun(cmd.noun, inventoryItems(), ITEMS);
+  if (itemIds.length === 0) return `You are not carrying any ${cmd.noun}.`;
+  if (itemIds.length > 1) return disambiguate(cmd.noun, itemIds);
+  const { npcs } = visibleEntities();
+  const npcIds = matchNoun(cmd.secondNoun, npcs, NPCS);
+  if (npcIds.length === 0) return `There is no ${cmd.secondNoun} here.`;
+  if (npcIds.length > 1) return disambiguate(cmd.secondNoun, npcIds);
+  state.lastNoun = cmd.noun;
+  const npc = NPCS[npcIds[0]];
+  if (npc.onGive) {
+    const out = npc.onGive(state, itemIds[0]);
+    if (out != null) {
+      // If onGive consumed the item, we expect them to have removed it from inventory.
+      return out;
+    }
+  }
+  return `${capFirst(npc.short)} declines.`;
+}
+
 function vHelp() {
   return [
     "Commands:",
@@ -279,6 +436,10 @@ const HANDLERS = {
   look: vLook, examine: vExamine,
   take: vTake, drop: vDrop, inventory: vInventory,
   help: vHelp, quit: vQuit, wait: vWait,
+  read: vRead, search: vSearch,
+  unlock: vUnlock, break: vBreak,
+  talk: vTalk, ask: vAsk, tell: vAsk, say: vSay,
+  show: vShow, give: vGive,
 };
 
 function dispatch(cmd) {
