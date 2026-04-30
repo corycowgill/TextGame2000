@@ -63,6 +63,9 @@ export function newState() {
       readWineLedger: false,
       hollisReleased: false,
       letterD_cellar: false,
+      tokensPlaced: false,
+      candlesLit: false,
+      won: false,
     },
     turnCount: 0,
     lampOil: 30,
@@ -150,6 +153,8 @@ function resolveNoun(noun) {
 function isDark() {
   const r = room();
   if (!r.dark) return false;
+  // Chapel candles, once lit, banish the darkness in the chapel itself.
+  if (r.id === "family_chapel" && state.flags.candlesLit) return false;
   if (state.flags.lampLit && state.lampOil > 0) return false;
   // The cat provides dim light if it's accompanying you.
   const { npcs } = visibleEntities();
@@ -637,6 +642,11 @@ function dispatch(cmd) {
   const r = room();
   if (r.onCommand) {
     const out = r.onCommand(state, cmd);
+    if (out && typeof out === "object" && out.__move) {
+      if (out.message) render.print(out.message);
+      enterRoom(out.__move);
+      return null;
+    }
     if (out != null) return out;
   }
 

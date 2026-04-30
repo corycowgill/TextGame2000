@@ -106,6 +106,22 @@ export const HINTS = [
     when: (s) => s.flags.chuteThawed && !s.tokensCollected.includes("pocket_watch_token"),
     text: "The chute is thawed. Take Hollis's pocket watch.",
   },
+  {
+    when: (s) => s.tokensCollected.length === 4 && !s.visited.has("crypt_stair"),
+    text: "All four tokens recovered. The grandfather clock in the foyer expects you now: `open clock` (or `enter clock`).",
+  },
+  {
+    when: (s) => s.visited.has("family_chapel") && !s.flags.tokensPlaced,
+    text: "Place the four tokens on the brass sigils: `place tokens`.",
+  },
+  {
+    when: (s) => s.flags.tokensPlaced && !s.flags.candlesLit,
+    text: "Light the four black candles: `light candles`.",
+  },
+  {
+    when: (s) => s.flags.tokensPlaced && s.flags.candlesLit && !s.flags.won,
+    text: "Speak the killer's full name. Your notebook has both his initials.",
+  },
 ];
 
 // Notebook: clues are auto-recorded by the engine when flags are set.

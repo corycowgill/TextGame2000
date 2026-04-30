@@ -173,6 +173,16 @@ export const ROOMS = {
         if (state.flags.westSealBroken) return null;
         return "The west wing door is sealed with executor's wax. You'd need authority — or evidence the executor is a liar — to break it.";
       }
+      // Grandfather-clock secret door: opens once all four tokens recovered.
+      if ((cmd.verb === "open" || cmd.verb === "enter") && cmd.noun && cmd.noun.includes("clock")) {
+        if (state.tokensCollected.length < 4) {
+          return "The clock-case is solid and unyielding. Something in it expects all four spirits to have spoken first.";
+        }
+        return {
+          __move: "crypt_stair",
+          message: "The clock-case sighs open as if it had been waiting for you. A stair winds down into stone — colder than any cellar, older than any wing of the house.",
+        };
+      }
       // Seal-breaking: requires having read the burnt will fragment.
       if (cmd.verb === "break" && cmd.noun && cmd.noun.includes("seal")) {
         if (!state.flags.readWillFragment) {
@@ -526,5 +536,127 @@ export const ROOMS = {
     dark: true,
     exits: { west: "boiler_room" },
     contents: ["hollis_body", "hollis_ghost", "hollis_watch"],
+  },
+
+  // ---------------- Region 5: Crypt & Chapel ----------------
+
+  crypt_stair: {
+    id: "crypt_stair",
+    name: "The Crypt Stair",
+    short: "A stone stair winding down.",
+    long:
+      "A spiral stair of dressed stone, older than the house above. The wall is cold to " +
+      "the touch and slightly damp. The stair winds down to a vault. The grandfather " +
+      "clock-case stands open above, behind you.",
+    dark: true,
+    exits: { up: "foyer", down: "family_crypt" },
+    contents: [],
+  },
+
+  family_crypt: {
+    id: "family_crypt",
+    name: "The Family Crypt",
+    short: "The Ashvale family crypt.",
+    long:
+      "A long vaulted chamber, low-roofed, lined with stone sarcophagi. Each bears a brass " +
+      "plaque: ASHVALE, ASHVALE, ASHVALE, generations of them. At the far end, a fresh " +
+      "sarcophagus stands open and empty, ready for a body that has not yet arrived. Beyond " +
+      "it, an iron-bound door east leads to the chapel. The stair lies west — and up.",
+    dark: true,
+    exits: { west: "crypt_stair", east: "family_chapel" },
+    contents: ["empty_sarcophagus"],
+  },
+
+  family_chapel: {
+    id: "family_chapel",
+    name: "The Family Chapel",
+    short: "The family chapel.",
+    long(state) {
+      const base =
+        "A small private chapel beneath the house: stone altar, four iron sconces, four " +
+        "black candles, and at the centre of the floor a séance circle inlaid in brass. " +
+        "Four sigils mark the four cardinal points of the circle, each shaped like one of " +
+        "the spirit-tokens you have recovered.";
+      const candles = state.flags.candlesLit ? " The four candles are burning." : " The candles are unlit.";
+      const tokens = state.flags.tokensPlaced ? " The four tokens lie on their sigils." : "";
+      return base + candles + tokens + " The crypt lies west.";
+    },
+    dark: true,
+    // Chapel is dimly lit by the candles once lit; treat as not-dark in that case.
+    exits: { west: "family_crypt" },
+    contents: ["seance_circle", "altar_candles"],
+    onCommand(state, cmd) {
+      // Place tokens.
+      if ((cmd.verb === "place" || cmd.verb === "put" || cmd.verb === "use") &&
+          cmd.noun && (cmd.noun.includes("token") || cmd.noun.includes("tokens"))) {
+        if (state.flags.tokensPlaced) return "The four tokens are already in place.";
+        if (state.tokensCollected.length < 4) return "You have only " + state.tokensCollected.length + " of the four tokens. The circle will not be answered until all four have spoken.";
+        // Move tokens from inventory to the circle.
+        const tokenItems = ["teacup_token", "letter_opener_token", "locket_token", "pocket_watch_token"];
+        // letter_opener_token is the silver_letter_opener; locket_token is locket_token; pocket_watch is hollis_watch.
+        // For simplicity, just check tokensCollected and set the flag without literally moving items.
+        state.flags.tokensPlaced = true;
+        return [
+          "You set each token down on its sigil. As you do, the brass inlay around the circle warms — not hot, but as if the iron had remembered being a hand.",
+          "(The circle is open.)",
+        ];
+      }
+      // Light candles.
+      if (cmd.verb === "light" && cmd.noun && cmd.noun.includes("candle")) {
+        if (state.flags.candlesLit) return "The four candles are already burning.";
+        if (!state.flags.lampLit && !state.inventory.includes("brass_lamp")) {
+          return "You have no flame to light them with.";
+        }
+        state.flags.candlesLit = true;
+        return "You touch flame to each wick in turn. The four candles take, then steady. The chapel's shadows lean back.";
+      }
+      // Speak the killer's name.
+      if (cmd.verb === "say" || cmd.verb === "name") {
+        const said = ((cmd.noun || "") + (cmd.secondNoun ? " " + cmd.secondNoun : "")).toLowerCase().trim();
+        if (!said) return "Say what?";
+        const haveTokens = state.flags.tokensPlaced;
+        const haveLight = state.flags.candlesLit;
+        if (!haveTokens && !haveLight) return "You speak the name. Nothing answers. (Place the tokens on the circle and light the candles first.)";
+        if (!haveTokens) return "You speak the name. Nothing answers. (Place the four tokens on their sigils first.)";
+        if (!haveLight) return "You speak the name. Nothing answers. (Light the candles first.)";
+        // Check correctness.
+        const target = "pemberton dredge";
+        const isFull = said === target || said === "dredge" || said === "pemberton dredge";
+        const isCloseEnough = said.includes("pemberton") && said.includes("dredge");
+        if (isFull || isCloseEnough) {
+          state.over = true;
+          state.flags.won = true;
+          return [
+            "",
+            "You speak the name into the circle. 'PEMBERTON DREDGE.'",
+            "",
+            "The candles flare. The brass sigils ring. Edmund Ashvale rises up out of the circle in his black coat, looking for once at peace.",
+            "",
+            "  'You have the right of it,' he says. 'And now I can lay down with my brother.'",
+            "",
+            "Cassandra. Julien. Beatrice. Hollis. They take the cardinal points of the circle and bow, each in turn, to Edmund. The four candles, all together, go out.",
+            "",
+            "Above, distantly, a clock strikes the half-hour — a normal half-hour, not the thirteenth. The fog rolls back from the windows. Dawn is grey on the moor.",
+            "",
+            "You climb out into a house that no longer expects to keep you. The black cat follows.",
+            "",
+            "**THE END — Ashvale is freed.**",
+          ];
+        }
+        // Wrong name.
+        state.over = true;
+        return [
+          "",
+          `You speak the name into the circle. '${said.toUpperCase()}.'`,
+          "",
+          "The candles flare — and gutter, and burn black. The brass sigils ring with a sound that goes through bone. From the four points of the circle, four spirits turn their faces toward you, and they are no longer kind.",
+          "",
+          "You named the wrong man. The manor takes its consolation.",
+          "",
+          "**THE END — refresh to begin again.**",
+        ];
+      }
+      return null;
+    },
   },
 };

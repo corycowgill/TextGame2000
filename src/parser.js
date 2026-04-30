@@ -35,6 +35,7 @@ export const VERBS = {
   take: ["take", "get", "grab", "pick", "pickup"],
   drop: ["drop", "discard", "leave"],
   put: ["put", "place", "insert", "set"],
+  name: ["name"],
   open: ["open"],
   close: ["close", "shut"],
   push: ["push", "press"],

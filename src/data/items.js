@@ -639,6 +639,41 @@ export const ITEMS = {
     takeable: false,
   },
 
+  empty_sarcophagus: {
+    id: "empty_sarcophagus",
+    names: ["sarcophagus", "empty sarcophagus", "tomb", "vault"],
+    short: "an empty sarcophagus",
+    desc:
+      "A fresh-cut sarcophagus, shaped to a man, with EDMUND ASHVALE chiseled at the head. " +
+      "The lid lies beside it. The space within is empty: Edmund's body is still in the " +
+      "study above. Until the question is answered, he will not lie down here.",
+    takeable: false,
+  },
+
+  seance_circle: {
+    id: "seance_circle",
+    names: ["circle", "seance circle", "séance circle", "sigil", "sigils", "brass circle", "floor"],
+    short: "a brass séance circle",
+    desc(state) {
+      const placed = state.flags.tokensPlaced
+        ? " The four tokens you have brought lie on the four sigils — teacup, letter opener, locket, pocket watch."
+        : " The four sigils are still empty: a cup, a knife, a locket, a watch.";
+      return "A wide brass circle, inlaid in the chapel floor, with four cardinal sigils. The metal is cold to the touch — not yet cold enough." + placed;
+    },
+    takeable: false,
+  },
+
+  altar_candles: {
+    id: "altar_candles",
+    names: ["candles", "candle", "black candles", "altar candles"],
+    short: "four black candles",
+    desc(state) {
+      if (state.flags.candlesLit) return "Four black candles, burning. The flame is steady, and the colour of an old bruise.";
+      return "Four black candles in iron sconces, one to each cardinal point of the circle. Unlit.";
+    },
+    takeable: false,
+  },
+
   hollis_watch: {
     id: "hollis_watch",
     names: ["pocket watch", "watch", "brass watch", "brass pocket watch", "pocket-watch token", "hollis watch"],
