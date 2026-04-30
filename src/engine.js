@@ -572,6 +572,30 @@ function vNotebook() {
   return lines;
 }
 
+const MAP_REGIONS = [
+  { name: "Outside", rooms: [["iron_gate", "Iron Gate"], ["front_door", "Front Door"], ["garden", "Garden"]] },
+  { name: "Ground floor", rooms: [["drawing_room", "Drawing Room"], ["foyer", "Foyer"], ["dining_room", "Dining Room"], ["servants_hall", "Servants' Hall"], ["study", "Edmund's Study"]] },
+  { name: "East wing",    rooms: [["east_corridor", "East Corridor"], ["conservatory", "Conservatory"], ["hedge_maze", "Hedge Maze"], ["stone_folly", "Stone Folly"]] },
+  { name: "West wing",    rooms: [["west_corridor", "West Corridor"], ["library", "Library"], ["portrait_gallery", "Portrait Gallery"], ["hidden_passage", "Hidden Passage"]] },
+  { name: "Upstairs",     rooms: [["landing", "Landing"], ["master_bedroom", "Master Bedroom"], ["linen_closet", "Linen Closet"], ["nursery", "Nursery"]] },
+  { name: "Cellar",       rooms: [["cellar_stair", "Cellar Stair"], ["wine_cellar", "Wine Cellar"], ["boiler_room", "Boiler Room"], ["coal_chute", "Coal Chute"]] },
+  { name: "Crypt",        rooms: [["crypt_stair", "Crypt Stair"], ["family_crypt", "Family Crypt"], ["family_chapel", "Family Chapel"]] },
+];
+
+function vMap() {
+  const lines = ["Map of Ashvale Manor (visited rooms marked *):", ""];
+  for (const region of MAP_REGIONS) {
+    const here = state.currentRoom;
+    const labels = region.rooms.map(([id, name]) => {
+      if (id === here) return `[${name}]`;
+      if (state.visited.has(id)) return `* ${name}`;
+      return `  ${name}`;
+    });
+    lines.push(`  ${region.name.padEnd(13)} ${labels.join(",  ")}`);
+  }
+  return lines;
+}
+
 function vScore() {
   return [
     `Turn: ${state.turnCount}`,
@@ -603,7 +627,7 @@ function vHelp() {
     "            break <X> with <Y>, wind/play <X>, show <X> to <Y>",
     "  Talk:     talk to <NPC>, ask <NPC> about <topic>, say <word>",
     "  Save:     save [slot], load [slot], restart",
-    "  Meta:     wait (z), again (g), help, hint, notebook, score, quit",
+    "  Meta:     wait (z), again (g), help, hint, notebook, map, score, quit",
     "  Refer back to the most recent noun with `it`.",
   ];
 }
@@ -633,7 +657,7 @@ const HANDLERS = {
   talk: vTalk, ask: vAsk, tell: vAsk, say: vSay,
   show: vShow, give: vGive,
   save: vSave, load: vLoad, restart: vRestart,
-  hint: vHint, notebook: vNotebook, score: vScore,
+  hint: vHint, notebook: vNotebook, score: vScore, map: vMap,
 };
 
 function dispatch(cmd) {

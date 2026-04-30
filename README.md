@@ -20,15 +20,29 @@ python3 -m http.server 8000
 
 Tested on recent Chrome, Firefox, and Safari. Save/load uses `localStorage`.
 
-## Status
+## What's in it
 
-This is being built in chunks. The currently shipped slice:
+The full game is here: 24 rooms across six regions, four restless ghosts, one
+murder to solve.
 
-- **Region 0 — Arrival & Drawing Floor** is fully playable end-to-end. You can
-  enter the manor, search Edmund, unlock his desk drawer, recover the household
-  keyring and the burnt will fragment, talk to Mrs. Crow, befriend the cat.
-- The four wings (East/West/Upstairs/Cellar) and the Crypt/Chapel finale are
-  sealed for now — coming in subsequent chunks.
+- **Arrival & Drawing Floor.** Find Edmund's body in the study; unlock his
+  drawer; recover the burnt will fragment naming his solicitor as the
+  unintended heir.
+- **East Wing.** Identify the toxin in Cassandra's teacup; release her with
+  a sprig of monkshood. Recovers the **Teacup Token** and the first initial.
+- **West Wing.** Examine the four family portraits; push Edmund's askew frame
+  to reveal a panelled passage. Read Julien's diary, take the silver letter
+  opener engraved with R. Recovers the **Letter-Opener Token**.
+- **Upstairs.** Cut the crepe across the stair (silver letter opener does it),
+  test the rotten balcony before crossing, wind a music box, open a locket,
+  show it to Beatrice. Recovers the **Locket Token** and the third initial.
+- **Cellar.** Pry the foyer's barred latch with a crowbar, descend into the
+  dark (lamp required, or the cat for company), route the boiler's steam to
+  the coal chute to thaw an ice-sealed door, and recover Hollis's brass watch.
+  Recovers the **Pocket-Watch Token** and the fourth initial.
+- **Crypt & Chapel.** With all four tokens, the foyer's grandfather clock
+  opens. Place the tokens, light the candles, and `say` the killer's full
+  name to break the curse — or name the wrong man, and the manor takes you.
 
 ## Commands
 
@@ -42,25 +56,15 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 | Use        | `use <X>`, `use <X> on <Y>`, `light <X>`, `extinguish <X>`, `unlock <X> with <Y>`, `open`/`close`/`push`/`pull`/`turn <X>`, `break <X> with <Y>`, `wind <X>`, `play <X>`, `show <X> to <Y>`, `give <X> to <Y>` |
 | Talk       | `talk to <NPC>`, `ask <NPC> about <topic>`, `tell <NPC> about <topic>`, `say <word>`, `knock`, `feed <NPC>` |
 | Save       | `save [slot]`, `load [slot]`, `restart` |
-| Meta       | `wait`/`z`, `again`/`g`, `help`, `hint`, `notebook`, `score`, `quit` |
+| Meta       | `wait`/`z`, `again`/`g`, `help`, `hint`, `notebook`, `map`, `score`, `quit` |
 
 Refer back to the most recent noun with `it`.
 
-## Walkthrough hints (Region 0)
+## Stuck?
 
-If you get stuck:
-
-```
-read telegram          (sets the scene)
-n  e  x window  open window  n  read letter
-n  feed cat  w  w  read slate  ask crow about will  ask crow about dredge
-e  e  e  search edmund  unlock drawer with fob  take keyring  take will  read will
-notebook
-```
-
-By the time you finish that path, your notebook should hint at *who* the killer
-is. The four wings will add the rest of his name and the means by which to
-prove it.
+`hint` always tells you the next step. `notebook` shows what you've found and
+what initials you've collected. `map` shows the layout and which rooms you've
+visited.
 
 ## Project layout
 
