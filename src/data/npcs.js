@@ -28,6 +28,41 @@ export const NPCS = {
     },
   },
 
+  cassandra_ghost: {
+    id: "cassandra_ghost",
+    names: ["cassandra", "ghost", "lady cassandra", "spirit", "lady"],
+    short: "the spirit of Lady Cassandra",
+    desc:
+      "Lady Cassandra stands among her plants, faint and beautiful and patient, the colour " +
+      "of conservatory rain. Her lips move, but only flower-names come out. She is not at " +
+      "rest.",
+    takeable: false,
+    dialogue: {
+      default: "She murmurs: 'Foxglove. Foxglove. Hemlock. Show me what I drank, and I shall be still.'",
+      will: "Her gaze lifts for a moment. She says, 'Pemberton's hand was on the cup.'",
+      edmund: "'My husband's brother. He died believing me. Tell him I forgive his trust.'",
+      poison: "'In the cup, in the cup. Show me which flower, and I will name the hand that poured.'",
+    },
+    onShow(state, itemId) {
+      if (itemId === "monkshood_sprig") {
+        if (state.tokensCollected.includes("teacup_token")) return "She has already given you what she had.";
+        state.tokensCollected.push("teacup_token");
+        state.flags.cassandraReleased = true;
+        state.inventory.push("teacup_token");
+        return [
+          "You hold up the sprig. Her face changes — not relief, exactly, but recognition.",
+          "  'So. The blue cup, then. Tell my husband I am sorry I trusted his brother's solicitor with my tea.'",
+          "She unclasps something from her wrist — a small porcelain disc — and presses it into your hand. The conservatory rain seems to slacken. The plant on the plinth sags, as though spent.",
+          "(You have recovered the Teacup Token.)",
+        ];
+      }
+      if (itemId === "foxglove" || itemId === "hemlock") {
+        return "Her face contorts. 'No. That was not in my cup.'";
+      }
+      return null;
+    },
+  },
+
   black_cat: {
     id: "black_cat",
     names: ["cat", "black cat", "kitten"],

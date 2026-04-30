@@ -208,6 +208,115 @@ export const ITEMS = {
     takeable: true,
   },
 
+  // ---- Region 1: East Wing ----
+
+  cassandra_portrait: {
+    id: "cassandra_portrait",
+    names: ["portrait", "cassandra portrait", "painting", "lady cassandra"],
+    short: "a portrait of Lady Cassandra",
+    desc:
+      "Lady Cassandra Ashvale, painted in her thirties, holds a sprig of some pale flower " +
+      "between her fingers. Her plaque reads: 'Cassandra Ashvale, b. 1853, d. 1888 — beloved.' " +
+      "The flower in the painting matches none in the conservatory you have yet seen.",
+    takeable: false,
+  },
+
+  teacup: {
+    id: "teacup",
+    names: ["teacup", "tea cup", "cup"],
+    short: "a porcelain teacup with a residue ring",
+    desc:
+      "A delicate porcelain cup. A bluish residue rings the bottom — a tincture, not a tea, " +
+      "though it has been disguised as one. Whoever drank from this drank willingly.",
+    takeable: true,
+  },
+
+  botanical_guide: {
+    id: "botanical_guide",
+    names: ["guide", "botanical guide", "book", "botany"],
+    short: "a heavy botanical guide",
+    desc: "A folio of pressed-flower illustrations, splayed open at the section on toxic herbs.",
+    takeable: false,
+    onRead(state) {
+      state.flags.readBotanicalGuide = true;
+      return [
+        "You read the open section. Three plants are illustrated:",
+        "  FOXGLOVE: tall, freckled bells of mauve and cream. Stains tinctures green.",
+        "  MONKSHOOD: hooded blossoms of deep blue. Stains tinctures bluish-violet.",
+        "  HEMLOCK: lacy white umbels. Stains tinctures yellowish-grey.",
+      ];
+    },
+  },
+
+  foxglove: {
+    id: "foxglove",
+    names: ["foxglove", "fox glove"],
+    short: "a foxglove plant on a plinth",
+    desc: "A foxglove in full flower — tall freckled bells of mauve and cream. The plinth's brass tag reads FOXGLOVE.",
+    takeable: false,
+  },
+
+  hemlock: {
+    id: "hemlock",
+    names: ["hemlock"],
+    short: "a hemlock plant on a plinth",
+    desc: "Hemlock in full flower — lacy white umbels above feathered leaves. The plinth's brass tag reads HEMLOCK.",
+    takeable: false,
+  },
+
+  monkshood_plant: {
+    id: "monkshood_plant",
+    names: ["monkshood plant", "monkshood", "blue flower", "blue plant", "hooded flower"],
+    short: "a monkshood plant on a plinth",
+    desc:
+      "A monkshood in full flower — hooded blossoms of deep blue, the colour of the residue " +
+      "in the teacup exactly. The plinth's brass tag reads MONKSHOOD.",
+    takeable: false,
+    onCommand(state, cmd) {
+      if (cmd.verb === "take") {
+        if (state.flags.tookMonkshood) return "You already cut a sprig.";
+        state.flags.tookMonkshood = true;
+        state.inventory.push("monkshood_sprig");
+        return "You cut a single hooded blossom and slip it carefully into your notebook. The plant on the plinth seems to lean after you, briefly, like a head turning.";
+      }
+      return null;
+    },
+  },
+
+  monkshood_sprig: {
+    id: "monkshood_sprig",
+    names: ["monkshood sprig", "sprig", "blossom", "monkshood", "blue flower"],
+    short: "a sprig of monkshood",
+    desc: "A single deep-blue blossom, hood-shaped, with the same violet bloom as the residue in Cassandra's teacup.",
+    takeable: true,
+  },
+
+  sundial: {
+    id: "sundial",
+    names: ["sundial", "dial"],
+    short: "a weathered sundial",
+    desc:
+      "A circular bronze sundial set in stone. The hours are Roman; the gnomon casts no shadow " +
+      "(the day is grey). At the centre, between IV and V, a single Roman letter is etched, " +
+      "deeply, in serif: D.",
+    takeable: false,
+    onExamine(state) {
+      if (!state.flags.letterD_east) {
+        state.flags.letterD_east = true;
+        return "A circular bronze sundial set in stone. The hours are Roman; the gnomon casts no shadow. At the centre, between IV and V, a single Roman letter is etched in deep serif: D.\n  (You note the letter D in your book. First of four.)";
+      }
+      return null; // fall through to default desc
+    },
+  },
+
+  teacup_token: {
+    id: "teacup_token",
+    names: ["teacup token", "token", "blue token", "spirit token"],
+    short: "the Teacup Token",
+    desc: "A small porcelain disc the colour of the conservatory glass, cool in the palm. It hums faintly when you hold your breath.",
+    takeable: true,
+  },
+
   brass_lamp: {
     id: "brass_lamp",
     names: ["lamp", "brass lamp", "oil lamp", "lantern"],

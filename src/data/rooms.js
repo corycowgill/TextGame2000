@@ -109,17 +109,26 @@ export const ROOMS = {
     id: "foyer",
     name: "The Foyer",
     short: "The grand foyer of Ashvale Manor.",
-    long:
-      "A black-and-white tiled floor stretches beneath a chandelier furred with cobweb. A " +
-      "tall grandfather clock ticks in the corner — slowly, almost grudgingly. Doorways " +
-      "lead south to the drawing room, west to the dining room, and east toward Edmund's " +
-      "study. The stair up to the bedrooms is roped off with black crepe. The cellar door " +
-      "down is barred. The wing doors east-northeast and west-northwest are sealed with " +
-      "wax and signature: 'BY ORDER OF THE EXECUTOR — DO NOT BREAK.'",
+    long(state) {
+      const base =
+        "A black-and-white tiled floor stretches beneath a chandelier furred with cobweb. A " +
+        "tall grandfather clock ticks in the corner — slowly, almost grudgingly. Doorways " +
+        "lead south to the drawing room, west to the dining room, and east toward Edmund's " +
+        "study.";
+      const stairs = " The stair up to the bedrooms is roped off with black crepe. The cellar door down is barred.";
+      const east = state.flags.eastSealBroken
+        ? " The east wing doors stand open — their wax seal lies in fragments on the tiles."
+        : " A heavy double-door east-northeast bears a black wax seal: 'BY ORDER OF THE EXECUTOR — DO NOT BREAK.'";
+      const west = state.flags.westSealBroken
+        ? " The west wing doors stand open — their seal broken."
+        : " A second sealed door, west-northwest, bears a matching seal.";
+      return base + stairs + east + west;
+    },
     exits: {
       south: "drawing_room",
       west: "dining_room",
       east: "study",
+      northeast: "east_corridor",
     },
     contents: ["grandfather_clock", "black_cat"],
     onCommand(state, cmd) {
@@ -129,11 +138,91 @@ export const ROOMS = {
       if (cmd.verb === "down") {
         return "The cellar door is barred from this side, with a nail driven through the latch. Not yet.";
       }
-      if (cmd.verb === "northeast" || cmd.verb === "northwest") {
-        return "The wing doors are sealed with executor's wax. They will not open while the seal holds.";
+      if (cmd.verb === "northeast") {
+        if (state.flags.eastSealBroken) return null; // fall through to engine, but no exit defined; see redirect below
+        return "The east wing door is sealed with executor's wax. You'd need authority — or evidence the executor is a liar — to break it.";
+      }
+      if (cmd.verb === "northwest") {
+        if (state.flags.westSealBroken) return null;
+        return "The west wing door is sealed with executor's wax. You'd need authority — or evidence the executor is a liar — to break it.";
+      }
+      // Seal-breaking: requires having read the burnt will fragment.
+      if (cmd.verb === "break" && cmd.noun && cmd.noun.includes("seal")) {
+        if (!state.flags.readWillFragment) {
+          return "The executor's seals carry the law's weight. To defy them you'll need evidence — proof in your hand — that the executor is a forger.";
+        }
+        const which = (cmd.noun || "").toLowerCase();
+        const wantEast = which.includes("east") || (!which.includes("west") && !state.flags.eastSealBroken);
+        const wantWest = which.includes("west");
+        if (wantWest && !state.flags.westSealBroken) {
+          state.flags.westSealBroken = true;
+          return "You press a thumb to the west wing seal. With the burnt will in your other hand, the gesture has a kind of authority. The wax cracks; the doors fall open.";
+        }
+        if (wantEast && !state.flags.eastSealBroken) {
+          state.flags.eastSealBroken = true;
+          return "You press a thumb to the east wing seal. With the burnt will in your other hand, the gesture has a kind of authority. The wax cracks; the doors fall open.";
+        }
+        return "That seal is already broken.";
       }
       return null;
     },
+  },
+
+  // ---------------- Region 1: East Wing ----------------
+
+  east_corridor: {
+    id: "east_corridor",
+    name: "The East Corridor",
+    short: "A corridor in the east wing.",
+    long:
+      "A long corridor with damask wallpaper peeling in slow curls. A portrait of Lady " +
+      "Cassandra Ashvale hangs at the far end, her painted gaze always on you no matter " +
+      "where you stand. North-east is the conservatory, glass and green; east, a paved " +
+      "path leads out into the hedge maze. The foyer lies south-west.",
+    exits: {
+      southwest: "foyer",
+      northeast: "conservatory",
+      east: "hedge_maze",
+    },
+    contents: ["cassandra_portrait"],
+  },
+
+  conservatory: {
+    id: "conservatory",
+    name: "The Conservatory",
+    short: "A glass-domed conservatory.",
+    long:
+      "Iron arches hold up panels of green-stained glass; rain has been falling on the " +
+      "dome for so long that you cannot tell where the rain ends and the room begins. " +
+      "Three rare specimens stand on plinths around a wrought-iron tea table. On the " +
+      "table: a teacup, untouched; a heavy botanical guide, splayed open. The corridor " +
+      "lies south-west.",
+    exits: { southwest: "east_corridor" },
+    contents: ["teacup", "botanical_guide", "foxglove", "monkshood_plant", "hemlock", "cassandra_ghost"],
+  },
+
+  hedge_maze: {
+    id: "hedge_maze",
+    name: "The Hedge Maze",
+    short: "Inside the hedge maze.",
+    long:
+      "Yew hedges rise twice your height on either side, beaded with rain. The path " +
+      "branches confusingly, but you get the impression that all true paths bend inward. " +
+      "The corridor's door is to the west; the maze opens outward, north, into a small " +
+      "stone clearing.",
+    exits: { west: "east_corridor", north: "stone_folly" },
+    contents: [],
+  },
+
+  stone_folly: {
+    id: "stone_folly",
+    name: "The Stone Folly",
+    short: "A stone folly at the maze's heart.",
+    long:
+      "A miniature Greek folly stands at the maze's heart: four columns, no roof, a " +
+      "weathered stone bench. At its centre, a sundial. The hedge path leads back south.",
+    exits: { south: "hedge_maze" },
+    contents: ["sundial"],
   },
 
   dining_room: {

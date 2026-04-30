@@ -37,6 +37,12 @@ export function newState() {
       readSlate: false,
       foundFobKey: false,
       readWillFragment: false,
+      eastSealBroken: false,
+      westSealBroken: false,
+      readBotanicalGuide: false,
+      tookMonkshood: false,
+      cassandraReleased: false,
+      letterD_east: false,
     },
     turnCount: 0,
     lampOil: 30,
@@ -121,8 +127,10 @@ function resolveNoun(noun) {
 function describeRoom(full = true) {
   const r = room();
   render.printRoomName(r.name);
-  if (full) render.print(r.long);
-  else render.print(r.short);
+  const longText = typeof r.long === "function" ? r.long(state) : r.long;
+  const shortText = typeof r.short === "function" ? r.short(state) : r.short;
+  if (full) render.print(longText);
+  else render.print(shortText);
 
   const { items, npcs } = visibleEntities();
   const lines = [];
