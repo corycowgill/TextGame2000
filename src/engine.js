@@ -1,11 +1,26 @@
 // Game engine: world state + verb dispatch.
-// Chunk A1: movement, look, examine, take, drop, inventory, help, quit, wait.
 
 import { ROOMS } from "./data/rooms.js";
 import { ITEMS, itemDesc } from "./data/items.js";
 import { NPCS } from "./data/npcs.js";
+import { HINTS, NOTEBOOK_ENTRIES, KILLER_NAME, KILLER_LETTERS } from "./data/clues.js";
 import { parse, isDirection } from "./parser.js";
 import * as render from "./render.js";
+
+// Snapshot the initial room contents so we can restore on restart/new-game.
+const INITIAL_ROOM_CONTENTS = (() => {
+  const snap = {};
+  for (const [id, r] of Object.entries(ROOMS)) {
+    snap[id] = [...(r.contents || [])];
+  }
+  return snap;
+})();
+
+function resetRooms() {
+  for (const [id, contents] of Object.entries(INITIAL_ROOM_CONTENTS)) {
+    ROOMS[id].contents = [...contents];
+  }
+}
 
 // ---------- State ----------
 
@@ -20,6 +35,8 @@ export function newState() {
       catFed: false,
       readEdmundLetter: false,
       readSlate: false,
+      foundFobKey: false,
+      readWillFragment: false,
     },
     turnCount: 0,
     lampOil: 30,
@@ -400,6 +417,128 @@ function vGive(cmd) {
   return `${capFirst(npc.short)} declines.`;
 }
 
+// ---------- Save / load ----------
+
+const SAVE_PREFIX = "ashvale.save.";
+
+function serializeState() {
+  const roomContents = {};
+  for (const [id, r] of Object.entries(ROOMS)) roomContents[id] = [...(r.contents || [])];
+  return {
+    version: 1,
+    state: {
+      ...state,
+      visited: [...state.visited],
+    },
+    rooms: roomContents,
+  };
+}
+
+function applySave(payload) {
+  if (!payload || payload.version !== 1) return false;
+  const restored = { ...payload.state };
+  restored.visited = new Set(payload.state.visited || []);
+  // Carry forward any missing flags from a fresh state (forward-compat).
+  const fresh = newState();
+  restored.flags = { ...fresh.flags, ...(restored.flags || {}) };
+  state = restored;
+  // Restore room contents.
+  for (const [id, contents] of Object.entries(payload.rooms || {})) {
+    if (ROOMS[id]) ROOMS[id].contents = [...contents];
+  }
+  return true;
+}
+
+function vSave(cmd) {
+  const slot = (cmd.noun || "auto").toLowerCase().replace(/\s+/g, "_");
+  try {
+    const data = JSON.stringify(serializeState());
+    if (typeof localStorage === "undefined") return "(localStorage unavailable; save not stored.)";
+    localStorage.setItem(SAVE_PREFIX + slot, data);
+    return `Saved as '${slot}'. (Use 'load ${slot}' to restore.)`;
+  } catch (e) {
+    return `Save failed: ${e.message}`;
+  }
+}
+
+function vLoad(cmd) {
+  const slot = (cmd.noun || "auto").toLowerCase().replace(/\s+/g, "_");
+  try {
+    if (typeof localStorage === "undefined") return "(localStorage unavailable.)";
+    const raw = localStorage.getItem(SAVE_PREFIX + slot);
+    if (!raw) return `No save found in slot '${slot}'.`;
+    const payload = JSON.parse(raw);
+    if (!applySave(payload)) return "That save is from an incompatible version.";
+    render.clear();
+    render.system(`Restored from '${slot}'.`);
+    describeRoom(true);
+    syncStatus();
+    return null;
+  } catch (e) {
+    return `Load failed: ${e.message}`;
+  }
+}
+
+function vRestart() {
+  resetRooms();
+  state = newState();
+  render.clear();
+  startGame();
+  return null;
+}
+
+// ---------- Hint / notebook / score ----------
+
+function vHint() {
+  const matched = HINTS.find((h) => {
+    try { return h.when(state); } catch { return false; }
+  });
+  if (!matched) return "Nothing comes to mind right now.";
+  return `(Hint) ${matched.text}`;
+}
+
+function vNotebook() {
+  const lines = ["Vance's notebook:"];
+  const entries = NOTEBOOK_ENTRIES.filter((e) => state.flags[e.flag]);
+  if (entries.length === 0) {
+    lines.push("  (You have not written anything yet.)");
+  } else {
+    for (const e of entries) lines.push(`  - ${e.text}`);
+  }
+  // Killer-name letters collected so far (one per region).
+  const letters = [];
+  for (const region of Object.values(KILLER_LETTERS)) {
+    if (state.flags[region.flag]) letters.push(region.letter);
+  }
+  lines.push("");
+  if (letters.length === 0) {
+    lines.push("  Killer's name: ???? ??????");
+  } else {
+    lines.push(`  Killer's name (letters so far): ${letters.join(" ")}`);
+  }
+  lines.push(`  Tokens recovered: ${state.tokensCollected.length}/4`);
+  return lines;
+}
+
+function vScore() {
+  return [
+    `Turn: ${state.turnCount}`,
+    `Tokens recovered: ${state.tokensCollected.length}/4`,
+    `Notebook entries: ${NOTEBOOK_ENTRIES.filter((e) => state.flags[e.flag]).length}`,
+    `Rooms visited: ${state.visited.size}`,
+  ];
+}
+
+function syncStatus() {
+  const r = room();
+  render.updateStatus({
+    roomName: r.name,
+    turnCount: state.turnCount,
+    lampOil: state.lampOil,
+    lampLit: state.flags.lampLit,
+  });
+}
+
 function vHelp() {
   return [
     "Commands:",
@@ -411,6 +550,7 @@ function vHelp() {
     "            unlock <X> with <Y>, open/close/push/pull/turn <X>",
     "            break <X> with <Y>, wind/play <X>, show <X> to <Y>",
     "  Talk:     talk to <NPC>, ask <NPC> about <topic>, say <word>",
+    "  Save:     save [slot], load [slot], restart",
     "  Meta:     wait (z), again (g), help, hint, notebook, score, quit",
     "  Refer back to the most recent noun with `it`.",
   ];
@@ -440,6 +580,8 @@ const HANDLERS = {
   unlock: vUnlock, break: vBreak,
   talk: vTalk, ask: vAsk, tell: vAsk, say: vSay,
   show: vShow, give: vGive,
+  save: vSave, load: vLoad, restart: vRestart,
+  hint: vHint, notebook: vNotebook, score: vScore,
 };
 
 function dispatch(cmd) {
@@ -513,19 +655,21 @@ export function executeInput(rawInput) {
   }
 
   // cmd.kind === "command"
+  const flagsBefore = { ...state.flags };
   const out = dispatch(cmd);
   if (out != null) render.print(out);
   state.turnCount += 1;
   state.lastCommand = cmd.raw;
 
-  // Update status bar.
-  const r = room();
-  render.updateStatus({
-    roomName: r.name,
-    turnCount: state.turnCount,
-    lampOil: state.lampOil,
-    lampLit: state.flags.lampLit,
-  });
+  // Auto-record any new notebook-worthy flags that flipped this turn.
+  for (const entry of NOTEBOOK_ENTRIES) {
+    if (state.flags[entry.flag] && !flagsBefore[entry.flag]) {
+      render.system(`(Notebook updated.)`);
+      break;
+    }
+  }
+
+  syncStatus();
 }
 
 export function startGame() {
