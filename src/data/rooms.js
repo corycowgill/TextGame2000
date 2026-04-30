@@ -130,11 +130,24 @@ export const ROOMS = {
       east: "study",
       northeast: "east_corridor",
       northwest: "west_corridor",
+      up: "landing",
     },
     contents: ["grandfather_clock", "black_cat"],
     onCommand(state, cmd) {
       if (cmd.verb === "up" || cmd.verb === "climb") {
-        return "Black crepe has been tied across the stair. You will not climb tonight unless something authorises it.";
+        if (!state.flags.crepeCut) {
+          return "Black crepe has been tied across the stair, knotted thrice. Bare hands will not undo it tonight; you will need a blade.";
+        }
+        return null; // fall through to direction handler -> exits.up
+      }
+      if (cmd.verb === "cut" || (cmd.verb === "break" && cmd.noun && cmd.noun.includes("crepe"))) {
+        if (state.flags.crepeCut) return "The crepe is already cut.";
+        const noun = (cmd.noun || "").toLowerCase();
+        if (!noun.includes("crepe") && !noun.includes("rope") && !noun.includes("ribbon")) return null;
+        const hasOpener = state.inventory.includes("silver_letter_opener");
+        if (!hasOpener) return "You have nothing sharp enough to cut it cleanly. (A blade would do.)";
+        state.flags.crepeCut = true;
+        return "You draw the silver letter opener through the crepe. It parts with a small, mournful breath. The stair is yours.";
       }
       if (cmd.verb === "down") {
         return "The cellar door is barred from this side, with a nail driven through the latch. Not yet.";
@@ -346,5 +359,88 @@ export const ROOMS = {
       "letter opener resting on its surface.",
     exits: { south: "portrait_gallery" },
     contents: ["julien_diary", "silver_letter_opener", "julien_ghost"],
+  },
+
+  // ---------------- Region 3: Upstairs ----------------
+
+  landing: {
+    id: "landing",
+    name: "The Upstairs Landing",
+    short: "A galleried landing with a rotten balcony.",
+    long:
+      "A galleried landing, ringed by closed doors. The floorboards on the way to the " +
+      "nursery (north) look unwell — discoloured, sagging, marked at one place by a " +
+      "missing nail. East lies the master bedroom; west, a linen closet; the stair down " +
+      "returns you to the foyer.",
+    exits: {
+      down: "foyer",
+      east: "master_bedroom",
+      west: "linen_closet",
+      north: "nursery",
+    },
+    contents: [],
+    onCommand(state, cmd) {
+      if (cmd.verb === "test" && cmd.noun && (cmd.noun.includes("floor") || cmd.noun.includes("board") || cmd.noun.includes("balcony"))) {
+        if (state.flags.testedBalcony) return "You have already mapped a safe path along the edge.";
+        state.flags.testedBalcony = true;
+        return "You ease one boot onto each board in turn. Three creak. Two give. One — at the centre — would have dropped you onto the foyer tiles. You map a path along the wall.";
+      }
+      if (cmd.verb === "north" && !state.flags.testedBalcony) {
+        // DEATH: stepping out without testing.
+        state.over = true;
+        return "[DEATH] You stride out onto the balcony. The third board, the rotten one, splits. You drop two storeys onto black-and-white tiles. The cat watches gravely. Refresh to begin again.";
+      }
+      return null;
+    },
+  },
+
+  master_bedroom: {
+    id: "master_bedroom",
+    name: "The Master Bedroom",
+    short: "Edmund and Cassandra's bedroom.",
+    long:
+      "A four-poster bed, sheets drawn taut as if for a guest. A vanity with a single " +
+      "silver-backed brush. A dressing screen. The room smells of dried lavender and, " +
+      "underneath, of something sharper. The landing lies west.",
+    exits: { west: "landing" },
+    contents: ["vanity_mirror", "lavender_pouch"],
+  },
+
+  linen_closet: {
+    id: "linen_closet",
+    name: "The Linen Closet",
+    short: "A narrow linen closet.",
+    long:
+      "Shelves of folded sheets and pillow-slips. The smell is of cedar and slow time. " +
+      "On the lowest shelf, where a child might once have hidden, lie a small enamelled " +
+      "music box, a silver locket, and an iron crowbar that does not match the rest. " +
+      "The landing is east.",
+    exits: { east: "landing" },
+    contents: ["music_box", "silver_locket", "crowbar"],
+  },
+
+  nursery: {
+    id: "nursery",
+    name: "The Nursery",
+    short: "Beatrice's nursery.",
+    long:
+      "A small bed, a rocking horse, a doll's house with all the doll-house lights lit. " +
+      "Beatrice is in the bed; her cheek rests on the pillow exactly as a child sleeping " +
+      "would, but she does not breathe. The ceiling is starred with painted constellations. " +
+      "The landing lies south.",
+    exits: { south: "nursery_back" },
+    contents: ["beatrice_bed", "rocking_horse", "beatrice_ghost"],
+  },
+
+  nursery_back: {
+    id: "nursery_back",
+    name: "Crossing the Balcony",
+    short: "Edging back along the balcony.",
+    long: "",
+    exits: { north: "nursery", south: "landing" },
+    onEnter(state) {
+      // Always succeeds returning south (you've already mapped the path going up).
+      return { redirect: "landing", silent: true };
+    },
   },
 };

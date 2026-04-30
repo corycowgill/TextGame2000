@@ -51,6 +51,12 @@ export function newState() {
       readJulienDiary: false,
       julienReleased: false,
       letterR_west: false,
+      crepeCut: false,
+      testedBalcony: false,
+      musicBoxWound: false,
+      openedLocket: false,
+      beatriceReleased: false,
+      letterE_upstairs: false,
     },
     turnCount: 0,
     lampOil: 30,
@@ -341,12 +347,12 @@ function vBreak(cmd) {
 
 function vTalk(cmd) {
   if (!cmd.noun) return "Talk to whom?";
-  const res = resolveNoun(cmd.noun);
-  if (res.kind === "none") return `There is no ${cmd.noun} here.`;
-  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
-  if (res.kind !== "npc") return "You receive no reply (and feel briefly foolish).";
+  const { npcs } = visibleEntities();
+  const ids = matchNoun(cmd.noun, npcs, NPCS);
+  if (ids.length === 0) return `There is no ${cmd.noun} here to talk to.`;
+  if (ids.length > 1) return disambiguate(cmd.noun, ids);
   state.lastNoun = cmd.noun;
-  const npc = NPCS[res.ids[0]];
+  const npc = NPCS[ids[0]];
   if (npc.onTalk) {
     const out = npc.onTalk(state);
     if (out != null) return out;
@@ -357,12 +363,12 @@ function vTalk(cmd) {
 function vAsk(cmd) {
   if (!cmd.noun) return "Ask whom?";
   if (!cmd.secondNoun) return `Ask ${cmd.noun} about what?`;
-  const res = resolveNoun(cmd.noun);
-  if (res.kind === "none") return `There is no ${cmd.noun} here.`;
-  if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
-  if (res.kind !== "npc") return "You cannot interrogate the furniture.";
+  const { npcs } = visibleEntities();
+  const ids = matchNoun(cmd.noun, npcs, NPCS);
+  if (ids.length === 0) return `There is no ${cmd.noun} here to ask.`;
+  if (ids.length > 1) return disambiguate(cmd.noun, ids);
   state.lastNoun = cmd.noun;
-  const npc = NPCS[res.ids[0]];
+  const npc = NPCS[ids[0]];
   const topic = cmd.secondNoun.toLowerCase().trim();
   if (npc.onAsk) {
     const out = npc.onAsk(state, topic);
@@ -601,15 +607,16 @@ const HANDLERS = {
 };
 
 function dispatch(cmd) {
-  // Movement: bare directions.
-  if (isDirection(cmd.verb)) return move(cmd.verb);
-
-  // Room-level override gets first crack.
+  // Room-level override gets first crack — needed so rooms can intercept
+  // movement (e.g. the rotten balcony) before the engine resolves exits.
   const r = room();
   if (r.onCommand) {
     const out = r.onCommand(state, cmd);
     if (out != null) return out;
   }
+
+  // Movement: bare directions.
+  if (isDirection(cmd.verb)) return move(cmd.verb);
 
   // Item-level override (for items in scope).
   const { items: roomItems, npcs: roomNpcs } = visibleEntities();

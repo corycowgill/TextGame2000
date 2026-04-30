@@ -426,6 +426,105 @@ export const ITEMS = {
     },
   },
 
+  // ---- Region 3: Upstairs ----
+
+  vanity_mirror: {
+    id: "vanity_mirror",
+    names: ["mirror", "vanity mirror", "vanity"],
+    short: "a silver-backed vanity mirror",
+    desc: "A silver-backed vanity mirror, dulled with age. In the angle of the glass, you catch a glimpse of a woman who is not behind you.",
+    takeable: false,
+  },
+
+  lavender_pouch: {
+    id: "lavender_pouch",
+    names: ["lavender", "pouch", "sachet"],
+    short: "a pouch of dried lavender",
+    desc: "A small muslin sachet of dried lavender. Beneath the herb-scent, the unmistakable bitter-almond of monkshood tincture.",
+    takeable: true,
+  },
+
+  music_box: {
+    id: "music_box",
+    names: ["music box", "music-box", "box"],
+    short: "an enamelled music box",
+    desc(state) {
+      const wound = state.flags.musicBoxWound ? "wound and ready to play" : "unwound — its key sits unturned";
+      return `An enamelled music box, painted with constellations. The brass key on the underside is ${wound}.`;
+    },
+    takeable: true,
+    onCommand(state, cmd) {
+      if (cmd.verb === "wind") {
+        if (state.flags.musicBoxWound) return "The music box is already wound.";
+        state.flags.musicBoxWound = true;
+        return "You turn the brass key. The mechanism clicks softly, then settles, ready to play.";
+      }
+      if (cmd.verb === "play") {
+        if (!state.flags.musicBoxWound) return "The music box will not play. (Try winding it first.)";
+        // The nursery's onCommand handles the contextual play -> ghost release.
+        return "You lift the lid. A small chime begins — a half-remembered lullaby — and the room around you listens.";
+      }
+      return null;
+    },
+  },
+
+  silver_locket: {
+    id: "silver_locket",
+    names: ["locket", "silver locket", "necklace"],
+    short: "a silver locket",
+    desc(state) {
+      if (state.flags.openedLocket) {
+        return "The locket lies open. Inside: a daguerreotype of Beatrice, smiling; opposite, the engraved capital E in copperplate, with the words 'for my dear Edmund'.";
+      }
+      return "A small silver locket on a tarnished chain. The engraving on the back is rubbed dim, but the clasp is still firm.";
+    },
+    takeable: true,
+    onCommand(state, cmd) {
+      if (cmd.verb === "open") {
+        if (state.flags.openedLocket) return "The locket is already open.";
+        state.flags.openedLocket = true;
+        state.flags.letterE_upstairs = true;
+        return [
+          "You ease the clasp. The locket opens. Inside, a daguerreotype of Beatrice. Opposite, an engraved capital E in copperplate, with 'for my dear Edmund' beneath.",
+          "(You note the letter E in your book — third of four.)",
+        ];
+      }
+      return null;
+    },
+  },
+
+  crowbar: {
+    id: "crowbar",
+    names: ["crowbar", "iron bar", "bar", "pry bar"],
+    short: "an iron crowbar",
+    desc: "A short iron crowbar, the kind a household keeps for prying loose nails or stubborn cellar doors.",
+    takeable: true,
+  },
+
+  beatrice_bed: {
+    id: "beatrice_bed",
+    names: ["bed", "beatrice bed", "child bed"],
+    short: "Beatrice's bed",
+    desc: "A small white bed. Beatrice in it, sleeping. A pillow beside her, with the impression — clear and shallow — of a hand.",
+    takeable: false,
+  },
+
+  rocking_horse: {
+    id: "rocking_horse",
+    names: ["horse", "rocking horse", "rocker"],
+    short: "a rocking horse",
+    desc: "A wooden rocking horse, painted dapple-grey. It rocks, very slightly, in a draught you cannot feel.",
+    takeable: false,
+  },
+
+  locket_token: {
+    id: "locket_token",
+    names: ["locket token", "token"],
+    short: "the Locket Token",
+    desc: "A small silver disc, no larger than the locket's face — given to you by Beatrice when she finally let go.",
+    takeable: true,
+  },
+
   brass_lamp: {
     id: "brass_lamp",
     names: ["lamp", "brass lamp", "oil lamp", "lantern"],

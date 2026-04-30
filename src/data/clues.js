@@ -66,6 +66,26 @@ export const HINTS = [
     when: (s) => s.flags.passageOpened && !s.tokensCollected.includes("letter_opener_token"),
     text: "Inside the hidden passage: read the diary, then take the letter opener.",
   },
+  {
+    when: (s) => s.inventory.includes("silver_letter_opener") && !s.flags.crepeCut,
+    text: "The stair to the bedrooms is roped off with crepe. Try `cut crepe` in the foyer.",
+  },
+  {
+    when: (s) => s.flags.crepeCut && !s.visited.has("nursery"),
+    text: "Upstairs: the nursery is north across the landing — but `test floor` first; the boards are rotten.",
+  },
+  {
+    when: (s) => s.visited.has("nursery") && !s.inventory.includes("music_box"),
+    text: "The linen closet (west of the landing) holds a music box, a locket, and a crowbar. Take all.",
+  },
+  {
+    when: (s) => s.inventory.includes("music_box") && !s.flags.musicBoxWound,
+    text: "Wind the music box (`wind music box`).",
+  },
+  {
+    when: (s) => s.flags.musicBoxWound && !s.tokensCollected.includes("locket_token"),
+    text: "In the nursery, with the music box wound, show the locket to Beatrice.",
+  },
 ];
 
 // Notebook: clues are auto-recorded by the engine when flags are set.
@@ -80,6 +100,8 @@ export const NOTEBOOK_ENTRIES = [
   { flag: "readJulienDiary", text: "Julien's diary: 'his cuffs are inked with R — too proud of his own initial to disguise it.' The killer's first name begins with R." },
   { flag: "julienReleased", text: "Julien Ashvale was stabbed with the silver letter opener by 'a man of the law' whose first name begins with R." },
   { flag: "letterR_west", text: "Silver letter opener: engraved with the capital R. (Second initial.)" },
+  { flag: "openedLocket", text: "Silver locket: engraved with E in copperplate, 'for my dear Edmund'. (Third initial.)" },
+  { flag: "beatriceReleased", text: "Beatrice was smothered in her sleep by 'a man with ink on his cuffs', a letter E on the cuffs." },
 ];
 
 // Killer-name letter accumulator. Set by region puzzles.

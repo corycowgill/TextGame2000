@@ -43,6 +43,8 @@ export const VERBS = {
   unlock: ["unlock"],
   lock: ["lock"],
   break: ["break", "smash", "shatter"],
+  cut: ["cut", "slice", "sever"],
+  pry: ["pry", "wrench"],
   tie: ["tie", "fasten"],
 
   // use & state
