@@ -536,6 +536,131 @@ export const ITEMS = {
       return `A heavy brass oil lamp with a glass chimney${lit}${fuel}.`;
     },
     takeable: true,
+    onCommand(state, cmd) {
+      if (cmd.verb === "light") {
+        if (state.flags.lampLit) return "The lamp is already burning.";
+        if (state.lampOil <= 0) return "The lamp is out of oil.";
+        state.flags.lampLit = true;
+        return "You strike a match and touch it to the wick. The flame steadies. The world has edges again.";
+      }
+      if (cmd.verb === "extinguish") {
+        if (!state.flags.lampLit) return "The lamp is already out.";
+        state.flags.lampLit = false;
+        return "You blow out the lamp. Smoke curls.";
+      }
+      return null;
+    },
+  },
+
+  // ---- Region 4: Cellar ----
+
+  wine_ledger: {
+    id: "wine_ledger",
+    names: ["ledger", "wine ledger", "household ledger", "book"],
+    short: "an open household ledger",
+    desc:
+      "An open ledger in Hollis's tidy hand: deliveries, breakages, port from Oporto. The " +
+      "last entry is in a different hand, dated the morning AFTER Edmund died: 'Codicil " +
+      "executed; estate residue assigned per terms. Witnessed and signed: P. Dredge, Solr.' " +
+      "The D in Dredge is heavy, ornate, prouder than the rest of the page.",
+    takeable: false,
+    onRead(state) {
+      state.flags.readWineLedger = true;
+      state.flags.letterD_cellar = true;
+      return [
+        "You read the last two entries.",
+        "  21 Sept., evening: 'Decanter to study (Lord E.). Hollis.'",
+        "  22 Sept., morning: 'Codicil executed; estate residue assigned per terms.'",
+        "                       'Witnessed and signed: P. DREDGE, SOLR.'",
+        "(The will was finalised the morning after Edmund died. You note the letter D in your book — fourth of four.)",
+      ];
+    },
+    onExamine(state) {
+      // Same effect as read.
+      return null;
+    },
+  },
+
+  steam_boiler: {
+    id: "steam_boiler",
+    names: ["boiler", "steam boiler", "iron boiler", "valve", "valves", "wheel", "knob"],
+    short: "the iron boiler",
+    desc(state) {
+      const route = state.flags.steamRoute || "hall";
+      return `A vast iron boiler. Three valves run to pipes labelled HALL, WINE, and CHUTE. The valve currently routes steam to ${route.toUpperCase()}.`;
+    },
+    takeable: false,
+    onCommand(state, cmd) {
+      if (cmd.verb === "turn" || cmd.verb === "use" || cmd.verb === "push" || cmd.verb === "pull") {
+        const noun = (cmd.noun || "").toLowerCase();
+        if (!noun.includes("valve") && !noun.includes("boiler") && !noun.includes("wheel") && !noun.includes("knob")) {
+          // Only act on explicitly-valve nouns; otherwise pass.
+          if (cmd.verb === "turn" && !noun) {
+            // bare "turn" — fall through
+          } else if (cmd.verb !== "turn") return null;
+        }
+        const order = ["hall", "wine", "chute"];
+        const cur = state.flags.steamRoute || "hall";
+        const next = order[(order.indexOf(cur) + 1) % order.length];
+        state.flags.steamRoute = next;
+        if (next === "chute") {
+          if (!state.flags.chuteThawed) {
+            state.flags.chuteThawed = true;
+            return [
+              `You turn the valve. Steam ceases to climb to ${cur.toUpperCase()} and begins to roar through the CHUTE pipe instead.`,
+              "Within seconds, water begins to run from the ice wall over the chute door — and within a minute, the ice has retreated to a puddle.",
+            ];
+          }
+          return "The valve clicks. Steam continues to run to the CHUTE.";
+        }
+        return `You turn the valve. Steam now routes to ${next.toUpperCase()}.`;
+      }
+      return null;
+    },
+  },
+
+  boiler_plate: {
+    id: "boiler_plate",
+    names: ["plate", "brass plate"],
+    short: "a brass plate on the boiler",
+    desc:
+      "Engraved: 'ASHVALE WORKS, 1879. HALL — heat for the household. WINE — frost-prevention only. " +
+      "CHUTE — emergency thaw, not for daily use.'",
+    takeable: false,
+  },
+
+  hollis_body: {
+    id: "hollis_body",
+    names: ["hollis body", "body", "hollis", "butler"],
+    short: "Mr. Hollis's body",
+    desc:
+      "Mr. Hollis lies at the foot of the chute, head turned at an angle no living man's " +
+      "neck would consent to. His expression, even now, is one of professional regret.",
+    takeable: false,
+  },
+
+  hollis_watch: {
+    id: "hollis_watch",
+    names: ["pocket watch", "watch", "brass watch", "brass pocket watch", "pocket-watch token", "hollis watch"],
+    short: "Mr. Hollis's brass pocket watch",
+    desc:
+      "A heavy brass pocket watch on a chain. The crystal is cracked; the hands have stopped " +
+      "at 11:43 — four minutes before Edmund's. Hollis went first.",
+    takeable: true,
+    onCommand(state, cmd) {
+      if (cmd.verb === "take") {
+        if (state.tokensCollected.includes("pocket_watch_token")) return null;
+        state.tokensCollected.push("pocket_watch_token");
+        const r = ROOMS["coal_chute"];
+        r.contents = (r.contents || []).filter((x) => x !== "hollis_watch");
+        state.inventory.push("hollis_watch");
+        return [
+          "You ease the watch from Hollis's grip. It is heavy, plain, the kind of timepiece a butler would own.",
+          "(You have recovered the Pocket-Watch Token.)",
+        ];
+      }
+      return null;
+    },
   },
 };
 

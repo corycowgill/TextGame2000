@@ -57,6 +57,12 @@ export function newState() {
       openedLocket: false,
       beatriceReleased: false,
       letterE_upstairs: false,
+      cellarOpened: false,
+      steamRoute: "hall",
+      chuteThawed: false,
+      readWineLedger: false,
+      hollisReleased: false,
+      letterD_cellar: false,
     },
     turnCount: 0,
     lampOil: 30,
@@ -122,11 +128,14 @@ function resolveNoun(noun) {
   if (!noun) return { kind: "none", ids: [] };
   if (noun === "it" && state.lastNoun) noun = state.lastNoun;
 
+  const dark = isDark();
   const { items: roomItems, npcs: roomNpcs } = visibleEntities();
-  const allItemIds = [...inventoryItems(), ...roomItems];
+  const roomItemsVisible = dark ? [] : roomItems;
+  const roomNpcsVisible = dark ? roomNpcs.filter((id) => id === "black_cat") : roomNpcs;
+  const allItemIds = [...inventoryItems(), ...roomItemsVisible];
 
   const itemMatches = matchNoun(noun, allItemIds, ITEMS);
-  const npcMatches = matchNoun(noun, roomNpcs, NPCS);
+  const npcMatches = matchNoun(noun, roomNpcsVisible, NPCS);
   const all = [
     ...itemMatches.map((id) => ({ kind: "item", id })),
     ...npcMatches.map((id) => ({ kind: "npc", id })),
@@ -138,8 +147,23 @@ function resolveNoun(noun) {
 
 // ---------- Output helpers ----------
 
+function isDark() {
+  const r = room();
+  if (!r.dark) return false;
+  if (state.flags.lampLit && state.lampOil > 0) return false;
+  // The cat provides dim light if it's accompanying you.
+  const { npcs } = visibleEntities();
+  if (npcs.includes("black_cat")) return false;
+  return true;
+}
+
 function describeRoom(full = true) {
   const r = room();
+  if (isDark()) {
+    render.printRoomName(r.name);
+    render.print("It is pitch dark; you cannot see your hand in front of your face. (You will need a light source.)");
+    return;
+  }
   render.printRoomName(r.name);
   const longText = typeof r.long === "function" ? r.long(state) : r.long;
   const shortText = typeof r.short === "function" ? r.short(state) : r.short;
@@ -242,6 +266,7 @@ function vTake(cmd) {
 }
 
 function takeAll() {
+  if (isDark()) return "It is too dark to see anything to take.";
   const { items } = visibleEntities();
   const lines = [];
   for (const id of items) {
@@ -683,6 +708,28 @@ export function executeInput(rawInput) {
   if (out != null) render.print(out);
   state.turnCount += 1;
   state.lastCommand = cmd.raw;
+
+  // Lamp/oil tick: consume oil only in dark rooms with no cat-light.
+  if (!state.over) {
+    const r = ROOMS[state.currentRoom];
+    if (r && r.dark && state.flags.lampLit) {
+      const { npcs } = visibleEntities();
+      const catHere = npcs.includes("black_cat");
+      if (!catHere) {
+        state.lampOil = Math.max(0, state.lampOil - 1);
+        if (state.lampOil === 0) {
+          state.flags.lampLit = false;
+          render.system("The lamp gutters and goes out. The dark closes in.");
+          if (r.dark) {
+            state.over = true;
+            render.death("In the cellar's dark, with no flame, you misjudge the stair. Refresh to begin again.");
+          }
+        } else if (state.lampOil <= 5) {
+          render.system("(The lamp burns low.)");
+        }
+      }
+    }
+  }
 
   // Auto-record any new notebook-worthy flags that flipped this turn.
   for (const entry of NOTEBOOK_ENTRIES) {

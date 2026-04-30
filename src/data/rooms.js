@@ -131,6 +131,7 @@ export const ROOMS = {
       northeast: "east_corridor",
       northwest: "west_corridor",
       up: "landing",
+      down: "cellar_stair",
     },
     contents: ["grandfather_clock", "black_cat"],
     onCommand(state, cmd) {
@@ -150,7 +151,19 @@ export const ROOMS = {
         return "You draw the silver letter opener through the crepe. It parts with a small, mournful breath. The stair is yours.";
       }
       if (cmd.verb === "down") {
-        return "The cellar door is barred from this side, with a nail driven through the latch. Not yet.";
+        if (state.flags.cellarOpened) return null; // pass through to direction handler
+        return "The cellar door is barred from this side — a single iron nail driven through the latch. You'd need a crowbar.";
+      }
+      if (cmd.verb === "pry") {
+        const noun = (cmd.noun || "").toLowerCase();
+        const sec = (cmd.secondNoun || "").toLowerCase();
+        const wantsLatch = noun.includes("latch") || noun.includes("nail") || noun.includes("door") || noun.includes("cellar");
+        if (!wantsLatch) return null;
+        if (state.flags.cellarOpened) return "The cellar door is already open.";
+        const hasCrow = state.inventory.includes("crowbar") || sec.includes("crow") || sec.includes("bar");
+        if (!hasCrow || !state.inventory.includes("crowbar")) return "You'd need an iron crowbar.";
+        state.flags.cellarOpened = true;
+        return "You set the crowbar against the nail and lean. Wood squeals; iron grinds; the latch comes free with a small spray of rust. The cellar door swings inward onto a darkness that smells of coal and ice.";
       }
       if (cmd.verb === "northeast") {
         if (state.flags.eastSealBroken) return null; // fall through to engine, but no exit defined; see redirect below
@@ -442,5 +455,76 @@ export const ROOMS = {
       // Always succeeds returning south (you've already mapped the path going up).
       return { redirect: "landing", silent: true };
     },
+  },
+
+  // ---------------- Region 4: Cellar ----------------
+
+  cellar_stair: {
+    id: "cellar_stair",
+    name: "The Cellar Stair",
+    short: "A narrow stair descending into the cellars.",
+    long:
+      "A flagstone stair plunges down between damp brick walls. Cobwebs hang in heavy " +
+      "festoons. A landing at the bottom branches: north to the wine cellar, east to the " +
+      "boiler room. The stair up returns you to the foyer.",
+    dark: true,
+    exits: {
+      up: "foyer",
+      north: "wine_cellar",
+      east: "boiler_room",
+    },
+    contents: [],
+  },
+
+  wine_cellar: {
+    id: "wine_cellar",
+    name: "The Wine Cellar",
+    short: "The wine cellar.",
+    long:
+      "Racks of bottles, dust an inch thick on each. A small standing desk by the door, " +
+      "with a household ledger left open and a brass lamp turned to its lowest. The cellar " +
+      "stair lies south.",
+    dark: true,
+    exits: { south: "cellar_stair" },
+    contents: ["wine_ledger"],
+  },
+
+  boiler_room: {
+    id: "boiler_room",
+    name: "The Boiler Room",
+    short: "A coal-fired boiler room.",
+    long(state) {
+      const base =
+        "A vast iron boiler, dormant tonight, dominates the room. From its dome, three " +
+        "valves run to three labelled pipes: HALL, WINE, CHUTE. A small brass plate is " +
+        "screwed to the boiler's flank. The cellar stair lies west; the coal chute is east — ";
+      const tail = state.flags.chuteThawed
+        ? "the ice that sealed it has thawed away."
+        : "but a wall of ice has grown over the doorway from inside.";
+      return base + tail;
+    },
+    dark: true,
+    exits: { west: "cellar_stair", east: "coal_chute" },
+    contents: ["steam_boiler", "boiler_plate"],
+    onCommand(state, cmd) {
+      if (cmd.verb === "east" && !state.flags.chuteThawed) {
+        return "The doorway to the chute is blocked by a thick wall of ice. The pipes overhead carry steam — if you can route it that way.";
+      }
+      return null;
+    },
+  },
+
+  coal_chute: {
+    id: "coal_chute",
+    name: "The Coal Chute",
+    short: "The coal chute.",
+    long:
+      "A narrow brick room with a sloped chute rising to a hatch in the side of the house. " +
+      "Mr. Hollis lies at the foot of the chute, where he must have struck his head when he " +
+      "fell — or was helped to fall. His right hand still grips a brass pocket watch. The " +
+      "boiler room lies west.",
+    dark: true,
+    exits: { west: "boiler_room" },
+    contents: ["hollis_body", "hollis_ghost", "hollis_watch"],
   },
 };

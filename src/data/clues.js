@@ -86,6 +86,26 @@ export const HINTS = [
     when: (s) => s.flags.musicBoxWound && !s.tokensCollected.includes("locket_token"),
     text: "In the nursery, with the music box wound, show the locket to Beatrice.",
   },
+  {
+    when: (s) => s.inventory.includes("crowbar") && !s.flags.cellarOpened,
+    text: "The cellar door is barred from the foyer side. `pry latch` with the crowbar.",
+  },
+  {
+    when: (s) => s.flags.cellarOpened && !s.inventory.includes("brass_lamp"),
+    text: "The cellar is dark. Take the brass lamp from Edmund's study (and `light lamp` before going down).",
+  },
+  {
+    when: (s) => s.flags.cellarOpened && !s.flags.lampLit && s.inventory.includes("brass_lamp"),
+    text: "Light the brass lamp before you descend (`light lamp`). Or befriend the cat first — it provides dim light.",
+  },
+  {
+    when: (s) => s.visited.has("boiler_room") && !s.flags.chuteThawed,
+    text: "The boiler's valve cycles steam through HALL, WINE, CHUTE. Examine the brass plate, then `turn valve` until steam reaches CHUTE.",
+  },
+  {
+    when: (s) => s.flags.chuteThawed && !s.tokensCollected.includes("pocket_watch_token"),
+    text: "The chute is thawed. Take Hollis's pocket watch.",
+  },
 ];
 
 // Notebook: clues are auto-recorded by the engine when flags are set.
@@ -102,6 +122,8 @@ export const NOTEBOOK_ENTRIES = [
   { flag: "letterR_west", text: "Silver letter opener: engraved with the capital R. (Second initial.)" },
   { flag: "openedLocket", text: "Silver locket: engraved with E in copperplate, 'for my dear Edmund'. (Third initial.)" },
   { flag: "beatriceReleased", text: "Beatrice was smothered in her sleep by 'a man with ink on his cuffs', a letter E on the cuffs." },
+  { flag: "readWineLedger", text: "Wine cellar ledger: 'Codicil executed; estate residue assigned per terms. Witnessed and signed: P. DREDGE, SOLR.' Dated the morning AFTER Edmund died — the will is forged." },
+  { flag: "letterD_cellar", text: "Wine cellar ledger: heavy ornate D in 'Dredge'. (Fourth initial.)" },
 ];
 
 // Killer-name letter accumulator. Set by region puzzles.

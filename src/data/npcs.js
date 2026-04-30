@@ -142,6 +142,24 @@ export const NPCS = {
     },
   },
 
+  hollis_ghost: {
+    id: "hollis_ghost",
+    names: ["hollis", "butler", "spirit", "ghost", "mr hollis", "mr. hollis"],
+    short: "the spirit of Mr. Hollis",
+    desc:
+      "Mr. Hollis stands beside his own body, holding (in his left hand, since the right is " +
+      "still gripping his watch below) a folded napkin, very precisely, as though waiting to " +
+      "announce a guest.",
+    takeable: false,
+    dialogue: {
+      default: "He inclines his head. 'I observed Mr. Dredge in the wine cellar at midnight, sir, signing a paper that was not yet meant to be signed. He observed me observing him. The chute, sir, was nearer than the front door.'",
+      will: "'The codicil was forged. I will swear so under any oath you can devise; I am, after all, in no further employment.'",
+      dredge: "'A small man with proud handwriting. He fancied his own initial. He underlined his D.'",
+      edmund: "'Lord Edmund was a kind master, sir. He trusted his lawyers. There was no remedy for that fault but trust.'",
+    },
+    onCommand() { return null; },
+  },
+
   black_cat: {
     id: "black_cat",
     names: ["cat", "black cat", "kitten"],
