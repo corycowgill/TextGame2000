@@ -3,6 +3,11 @@ const transcriptEl = () => document.getElementById("transcript");
 
 function appendLine(text, cls) {
   const t = transcriptEl();
+  if (!t) {
+    // Surfacing this is preferable to silent failure during boot.
+    console.warn("[Ashvale] transcript element missing; line dropped:", text);
+    return;
+  }
   const div = document.createElement("div");
   div.className = "line" + (cls ? " " + cls : "");
   div.textContent = text;
@@ -48,16 +53,17 @@ export function win(text) {
 }
 
 export function clear() {
-  transcriptEl().innerHTML = "";
+  const t = transcriptEl();
+  if (t) t.innerHTML = "";
 }
 
 export function updateStatus({ roomName, turnCount, lampOil, lampLit }) {
   const r = document.getElementById("status-room");
   const t = document.getElementById("status-turn");
   const o = document.getElementById("status-oil");
-  if (roomName != null) r.textContent = roomName;
-  if (turnCount != null) t.textContent = `turn ${turnCount}`;
-  if (lampOil != null) {
+  if (r && roomName != null) r.textContent = roomName;
+  if (t && turnCount != null) t.textContent = `turn ${turnCount}`;
+  if (o && lampOil != null) {
     if (!lampLit) o.textContent = "lamp: unlit";
     else o.textContent = `lamp: ${lampOil} oil`;
   }

@@ -19,16 +19,64 @@
       </div>
     </header>
 
-    <main id="transcript" aria-live="polite" aria-label="Game transcript"></main>
+    <main id="transcript" aria-live="polite" aria-label="Game transcript">
+      <div id="boot-notice" class="line system">Loading the manor…</div>
+    </main>
+
+    <noscript>
+      <div class="line system" style="padding: 8px;">
+        This game requires JavaScript. Please enable it and reload.
+      </div>
+    </noscript>
 
     <form id="input-form" autocomplete="off">
       <span class="prompt">&gt;</span>
-      <input id="input" name="input" type="text" autofocus
+      <input id="input" name="input" type="text"
              autocapitalize="off" autocorrect="off" spellcheck="false"
              aria-label="Command input" />
     </form>
   </div>
 
+  <script>
+    // Pre-boot watchdog: if main.js never finishes, surface a useful error.
+    window.__ashvaleBootStart = Date.now();
+    window.addEventListener("error", function (e) {
+      var t = document.getElementById("transcript");
+      if (!t) return;
+      var notice = document.getElementById("boot-notice");
+      if (notice) notice.remove();
+      var div = document.createElement("div");
+      div.className = "line death";
+      div.textContent = "Boot error: " + (e.message || e.error || "unknown") +
+        (e.filename ? " (" + e.filename + (e.lineno ? ":" + e.lineno : "") + ")" : "");
+      t.appendChild(div);
+      var hint = document.createElement("div");
+      hint.className = "line system";
+      hint.textContent =
+        location.protocol === "file:"
+          ? "The page is being opened directly from disk (file://). ES modules require HTTP. From the project root, run:  python3 -m http.server 8000  and open http://localhost:8000/"
+          : "If this persists, hard-refresh (Shift+Reload) to clear cached modules, and check the browser console for details.";
+      t.appendChild(hint);
+    });
+    setTimeout(function () {
+      if (window.__ashvaleBooted) return;
+      var t = document.getElementById("transcript");
+      if (!t) return;
+      var notice = document.getElementById("boot-notice");
+      if (notice) notice.remove();
+      var div = document.createElement("div");
+      div.className = "line death";
+      div.textContent = "The game failed to start within 5 seconds.";
+      t.appendChild(div);
+      var hint = document.createElement("div");
+      hint.className = "line system";
+      hint.textContent =
+        location.protocol === "file:"
+          ? "Likely cause: opened from disk (file://). ES modules require HTTP. Run:  python3 -m http.server 8000  in the project directory and open http://localhost:8000/"
+          : "Hard-refresh the page (Shift+Reload). If it still fails, open the browser console for details.";
+      t.appendChild(hint);
+    }, 5000);
+  </script>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
