@@ -572,27 +572,138 @@ function vNotebook() {
   return lines;
 }
 
-const MAP_REGIONS = [
-  { name: "Outside", rooms: [["iron_gate", "Iron Gate"], ["front_door", "Front Door"], ["garden", "Garden"]] },
-  { name: "Ground floor", rooms: [["drawing_room", "Drawing Room"], ["foyer", "Foyer"], ["dining_room", "Dining Room"], ["servants_hall", "Servants' Hall"], ["study", "Edmund's Study"]] },
-  { name: "East wing",    rooms: [["east_corridor", "East Corridor"], ["conservatory", "Conservatory"], ["hedge_maze", "Hedge Maze"], ["stone_folly", "Stone Folly"]] },
-  { name: "West wing",    rooms: [["west_corridor", "West Corridor"], ["library", "Library"], ["portrait_gallery", "Portrait Gallery"], ["hidden_passage", "Hidden Passage"]] },
-  { name: "Upstairs",     rooms: [["landing", "Landing"], ["master_bedroom", "Master Bedroom"], ["linen_closet", "Linen Closet"], ["nursery", "Nursery"]] },
-  { name: "Cellar",       rooms: [["cellar_stair", "Cellar Stair"], ["wine_cellar", "Wine Cellar"], ["boiler_room", "Boiler Room"], ["coal_chute", "Coal Chute"]] },
-  { name: "Crypt",        rooms: [["crypt_stair", "Crypt Stair"], ["family_crypt", "Family Crypt"], ["family_chapel", "Family Chapel"]] },
-];
+// Short labels (max 9 chars) used in the drawn map. Each cell is padded to
+// a uniform width so connectors line up.
+const MAP_LABELS = {
+  iron_gate: "Iron Gate",
+  front_door: "Front Door",
+  garden: "Garden",
+  drawing_room: "Drawing",
+  foyer: "FOYER",
+  dining_room: "Dining",
+  servants_hall: "Servants",
+  study: "Study",
+  east_corridor: "E. Corr.",
+  conservatory: "Conserv.",
+  hedge_maze: "Hedge",
+  stone_folly: "Folly",
+  west_corridor: "W. Corr.",
+  library: "Library",
+  portrait_gallery: "Gallery",
+  hidden_passage: "Passage",
+  landing: "Landing",
+  master_bedroom: "Master",
+  linen_closet: "Linen",
+  nursery: "Nursery",
+  cellar_stair: "C. Stair",
+  wine_cellar: "Wine",
+  boiler_room: "Boiler",
+  coal_chute: "Chute",
+  crypt_stair: "K. Stair",
+  family_crypt: "Crypt",
+  family_chapel: "Chapel",
+};
+
+// Render a single room cell: 14 characters wide, fixed.
+//   current:   [★ Name        ]
+//   visited:   [  Name        ]
+//   unvisited: [  ?           ]
+function mapCell(id) {
+  const W = 14;        // total cell width including the brackets
+  const inner = W - 2; // chars between [ and ]
+  const label = MAP_LABELS[id] || id;
+  let body;
+  if (state.currentRoom === id) body = ("★ " + label).padEnd(inner);
+  else if (state.visited.has(id)) body = ("  " + label).padEnd(inner);
+  else body = "  ?".padEnd(inner);
+  return "[" + body + "]";
+}
 
 function vMap() {
-  const lines = ["Map of Ashvale Manor (visited rooms marked *):", ""];
-  for (const region of MAP_REGIONS) {
-    const here = state.currentRoom;
-    const labels = region.rooms.map(([id, name]) => {
-      if (id === here) return `[${name}]`;
-      if (state.visited.has(id)) return `* ${name}`;
-      return `  ${name}`;
-    });
-    lines.push(`  ${region.name.padEnd(13)} ${labels.join(",  ")}`);
-  }
+  const m = mapCell;
+  // Helpers for explicit column-aligned drawing.
+  // Cell width = 14, connector " ── " = 4. Indent = 3.
+  // Cell at column index c starts at character column 3 + c * 18; centre at +7.
+  const sp = (n) => " ".repeat(Math.max(0, n));
+  const at = (c) => sp(3 + c * 18);          // start of cell column c
+  const center = (c) => sp(3 + c * 18 + 7);  // centre of cell column c
+  const lines = [];
+
+  lines.push("              ASHVALE MANOR — MAP");
+  lines.push("");
+  lines.push("                          N");
+  lines.push("                          │");
+  lines.push("                    W ────●──── E");
+  lines.push("                          │");
+  lines.push("                          S");
+  lines.push("");
+  lines.push("       ★ = your location  ·  ? = unvisited");
+  lines.push("");
+
+  // GROUND FLOOR
+  lines.push("─── GROUND FLOOR ─────────────────────────────────────────────────");
+  lines.push("");
+  //  cols:        0              1              2 (FOYER)      3
+  lines.push(`${at(0)}${m("servants_hall")} ── ${m("dining_room")} ── ${m("foyer")} ── ${m("study")}`);
+  lines.push(`${center(2)}│`);
+  lines.push(`${at(2)}${m("drawing_room")}`);
+  lines.push(`${center(2)}│`);
+  lines.push(`${at(2)}${m("garden")} ── ${m("front_door")}`);
+  lines.push(`${center(3)}│`);
+  lines.push(`${at(3)}${m("iron_gate")}`);
+  lines.push("");
+
+  // EAST WING — east_corridor at col 1 (NE of foyer), hedge at col 2, folly at col 2 row above
+  lines.push("─── EAST WING (NE from Foyer) ────────────────────────────────────");
+  lines.push("");
+  lines.push(`${at(1)}${m("conservatory")}    ${m("stone_folly")}`);
+  lines.push(`${center(1)}│${sp(14 + 4 - 1)}│`);
+  lines.push(`${sp(0)}   FOYER ─NE─ ${m("east_corridor")} ──── ${m("hedge_maze")}`);
+  lines.push("");
+
+  // WEST WING — west_corridor at col 2 (so SE arrow points to FOYER); library above; gallery & passage to W
+  lines.push("─── WEST WING (NW from Foyer) ────────────────────────────────────");
+  lines.push("");
+  lines.push(`${at(2)}${m("library")}`);
+  lines.push(`${center(2)}│`);
+  lines.push(`${at(0)}${m("hidden_passage")} ── ${m("portrait_gallery")} ── ${m("west_corridor")} ─SE─ FOYER`);
+  lines.push("   (passage opens after the gallery puzzle)");
+  lines.push("");
+
+  // UPSTAIRS — nursery north of landing; landing in middle; linen W, master E
+  lines.push("─── UPSTAIRS (up from Foyer, after cutting crepe) ────────────────");
+  lines.push("");
+  lines.push(`${at(1)}${m("nursery")}`);
+  lines.push(`${center(1)}│  (rotten balcony — test before crossing)`);
+  lines.push(`${at(0)}${m("linen_closet")} ── ${m("landing")} ── ${m("master_bedroom")}`);
+  lines.push(`${center(1)}│`);
+  lines.push(`${center(1)}↓ down to FOYER`);
+  lines.push("");
+
+  // CELLAR — wine north of cellar_stair; cellar_stair, boiler, chute east-west
+  lines.push("─── CELLAR (down from Foyer, after prying latch — DARK) ──────────");
+  lines.push("   Cellar rooms are dark. You need the lamp lit, or the cat.");
+  lines.push("");
+  lines.push(`${at(0)}${m("wine_cellar")}`);
+  lines.push(`${center(0)}│`);
+  lines.push(`${at(0)}${m("cellar_stair")} ── ${m("boiler_room")} ── ${m("coal_chute")}`);
+  lines.push(`${center(0)}│`);
+  lines.push(`${center(0)}↑ up to FOYER`);
+  lines.push("");
+
+  // CRYPT — crypt_stair down from foyer clock, then crypt, then chapel
+  lines.push("─── CRYPT (open the foyer clock, after all four tokens) ──────────");
+  lines.push("");
+  lines.push(`${at(0)}${m("crypt_stair")} ── ${m("family_crypt")} ── ${m("family_chapel")}`);
+  lines.push(`${center(0)}│`);
+  lines.push(`${center(0)}↑ up via the foyer clock`);
+  lines.push("");
+
+  // Stats footer.
+  const tokens = state.tokensCollected.length;
+  const visitedCount = state.visited.size;
+  lines.push(`   Tokens recovered: ${tokens}/4   ·   Rooms discovered: ${visitedCount}/${Object.keys(MAP_LABELS).length}`);
+
   return lines;
 }
 
