@@ -212,6 +212,57 @@ body {
 }
 #map-close:hover { border-color: var(--accent); color: var(--accent); }
 
+/* Graph container (hosts the Cytoscape canvas, or the SVG fallback) */
+.map-graph-wrap {
+  position: relative;
+  background: #14100c;
+  border-radius: 4px;
+}
+.cy-graph {
+  width: 100%;
+  height: 70vh;
+  min-height: 480px;
+  max-height: 760px;
+  position: relative;
+}
+.cy-loading {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--ink-dim);
+  font-style: italic;
+}
+
+/* HTML compass overlay (top-right of the graph) */
+.map-compass {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 70px;
+  height: 70px;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: rgba(20, 16, 12, 0.7);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  font-family: var(--serif);
+  font-size: 13px;
+  color: var(--accent);
+  pointer-events: none;
+  z-index: 2;
+}
+.map-compass .cn { grid-column: 2; grid-row: 1; justify-self: center; align-self: end; }
+.map-compass .cw { grid-column: 1; grid-row: 2; justify-self: start; align-self: center; padding-left: 6px; }
+.map-compass .ce { grid-column: 3; grid-row: 2; justify-self: end;   align-self: center; padding-right: 6px; }
+.map-compass .cs { grid-column: 2; grid-row: 3; justify-self: center; align-self: start; }
+.map-compass .cdot { grid-column: 2; grid-row: 2; justify-self: center; align-self: center; opacity: 0.6; }
+
+/* SVG fallback only */
 .map-panel svg {
   width: 100%;
   height: auto;
@@ -219,37 +270,12 @@ body {
   background: #14100c;
   border-radius: 4px;
 }
-
-/* Title and section labels */
-.map-panel svg .title {
-  font-family: var(--serif);
-  font-size: 22px;
-  fill: var(--ink-bright);
-  font-variant: small-caps;
-  letter-spacing: 0.05em;
-}
 .map-panel svg .section-label {
   font-family: var(--serif);
   font-size: 14px;
   fill: var(--accent);
   font-variant: small-caps;
   letter-spacing: 0.08em;
-}
-
-/* Compass */
-.map-panel svg .compass circle {
-  fill: rgba(212, 154, 74, 0.06);
-  stroke: var(--rule);
-  stroke-width: 1;
-}
-.map-panel svg .compass line {
-  stroke: var(--rule);
-  stroke-width: 1;
-}
-.map-panel svg .compass text {
-  font-family: var(--serif);
-  font-size: 13px;
-  fill: var(--accent);
 }
 
 /* Edges */
@@ -321,10 +347,11 @@ body {
   padding-top: 8px;
   border-top: 1px solid var(--rule);
 }
-.map-legend .legend.here { color: var(--accent); }
+.map-legend .legend.here { color: var(--accent); font-weight: 600; }
 .map-legend .legend.visited { color: var(--ink); }
 .map-legend .legend.unknown { color: var(--ink-dim); font-style: italic; }
 .map-legend .legend.stair { color: var(--accent); }
+.map-legend .legend.hint { color: var(--ink-dim); margin-left: auto; font-style: italic; }
 
 @media (max-width: 720px) {
   #map-overlay { padding: 8px; }

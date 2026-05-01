@@ -74,9 +74,10 @@ export function focusInput() {
   if (inp) inp.focus();
 }
 
-// ---------- SVG map overlay ----------
+// ---------- Map overlay ----------
 
 const MAP_OVERLAY_ID = "map-overlay";
+const CYTOSCAPE_URL = "https://cdn.jsdelivr.net/npm/cytoscape@3.30.4/dist/cytoscape.umd.js";
 
 function ensureOverlay() {
   let o = document.getElementById(MAP_OVERLAY_ID);
@@ -101,16 +102,54 @@ export function hideMap() {
   focusInput();
 }
 
-// Show the map overlay. `data` is { rooms, layout, edges, currentRoom, visited,
-// tokens, totalTokens }.
-//   rooms:   { id -> { id, name } }
-//   layout:  { id -> { x, y, label } }    // pixel coordinates and short label
-//   edges:   array of { from, to, kind }  // kind: "exit" | "stair"
-//   currentRoom, visited (Set), tokens (number), totalTokens (number)
+// Lazy-load Cytoscape.js the first time the user opens the map. If the CDN is
+// unreachable the promise rejects and showMap falls back to inline SVG.
+let cytoscapeLoadPromise = null;
+function loadCytoscape() {
+  if (typeof window !== "undefined" && window.cytoscape) {
+    return Promise.resolve(window.cytoscape);
+  }
+  if (cytoscapeLoadPromise) return cytoscapeLoadPromise;
+  cytoscapeLoadPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = CYTOSCAPE_URL;
+    s.async = true;
+    s.crossOrigin = "anonymous";
+    s.onload = () =>
+      window.cytoscape ? resolve(window.cytoscape) : reject(new Error("cytoscape global missing after load"));
+    s.onerror = () => {
+      cytoscapeLoadPromise = null; // allow retry on next open
+      reject(new Error("Failed to fetch cytoscape from " + CYTOSCAPE_URL));
+    };
+    document.head.appendChild(s);
+  });
+  return cytoscapeLoadPromise;
+}
+
+// Show the map overlay. `data` is { layout, edges, sections, currentRoom,
+// visited, tokens, totalTokens }.
 export function showMap(data) {
   const o = ensureOverlay();
-  o.innerHTML = buildMapHTML(data);
+  o.innerHTML = buildPanelShell(data);
   o.style.display = "flex";
+  const graphEl = document.getElementById("cy-graph");
+  if (!graphEl) return;
+
+  // Try Cytoscape first; on any failure fall back to inline SVG.
+  loadCytoscape()
+    .then((cy) => {
+      try {
+        graphEl.innerHTML = "";
+        renderWithCytoscape(graphEl, data, cy);
+      } catch (e) {
+        console.warn("[Ashvale] Cytoscape render failed; SVG fallback.", e);
+        graphEl.innerHTML = buildMapSVG(data);
+      }
+    })
+    .catch((e) => {
+      console.warn("[Ashvale] Cytoscape unavailable; SVG fallback.", e);
+      graphEl.innerHTML = buildMapSVG(data);
+    });
 }
 
 function escapeXml(s) {
@@ -119,14 +158,177 @@ function escapeXml(s) {
   );
 }
 
-function buildMapHTML(data) {
-  const { layout, edges, currentRoom, visited, tokens, totalTokens, sections } = data;
+function buildPanelShell(data) {
+  const { tokens, totalTokens, visited, layout } = data;
+  const stats = `Tokens recovered: ${tokens}/${totalTokens}  ·  Rooms discovered: ${visited.size}/${Object.keys(layout).length}`;
+  return `
+    <div class="map-panel" role="dialog" aria-label="Map of Ashvale Manor">
+      <div class="map-toolbar">
+        <span class="map-title">Ashvale Manor — Map</span>
+        <span class="map-stats">${escapeXml(stats)}</span>
+        <button id="map-close" type="button" aria-label="Close map">close ✕</button>
+      </div>
+      <div class="map-graph-wrap">
+        <div class="map-compass" aria-hidden="true">
+          <span class="cn">N</span>
+          <span class="cw">W</span>
+          <span class="cdot">●</span>
+          <span class="ce">E</span>
+          <span class="cs">S</span>
+        </div>
+        <div id="cy-graph" class="cy-graph">
+          <div class="cy-loading">drawing the manor…</div>
+        </div>
+      </div>
+      <div class="map-legend">
+        <span class="legend here">▲ you are here</span>
+        <span class="legend visited">visited</span>
+        <span class="legend unknown">unvisited</span>
+        <span class="legend stair">— — stair / hidden door</span>
+        <span class="legend hint">drag to pan · scroll to zoom</span>
+      </div>
+    </div>
+  `;
+}
 
-  const W = 100, H = 44; // room cell width/height in SVG units
+function renderWithCytoscape(container, data, cytoscape) {
+  const { layout, edges, currentRoom, visited } = data;
+
+  const nodes = Object.entries(layout).map(([id, r]) => {
+    const cls = id === currentRoom ? "here" : visited.has(id) ? "visited" : "unknown";
+    const label = (visited.has(id) || id === currentRoom) ? r.label : "?";
+    return {
+      data: { id, label },
+      position: { x: r.x, y: r.y },
+      classes: cls,
+      grabbable: false,
+      selectable: false,
+    };
+  });
+
+  const cyEdges = edges.map((e, i) => {
+    const bothKnown = (visited.has(e.from) || e.from === currentRoom) &&
+                      (visited.has(e.to)   || e.to   === currentRoom);
+    const cls = e.kind === "stair"
+      ? (bothKnown ? "stair" : "stair dim")
+      : (bothKnown ? "exit"  : "exit dim");
+    return {
+      data: { id: `e${i}`, source: e.from, target: e.to },
+      classes: cls,
+      selectable: false,
+    };
+  });
+
+  const cy = cytoscape({
+    container,
+    elements: { nodes, edges: cyEdges },
+    layout: { name: "preset" },
+    minZoom: 0.4,
+    maxZoom: 2.5,
+    wheelSensitivity: 0.25,
+    style: [
+      {
+        selector: "node",
+        style: {
+          shape: "round-rectangle",
+          width: 110,
+          height: 38,
+          "background-color": "#2a1f15",
+          "border-color": "#a89878",
+          "border-width": 1,
+          label: "data(label)",
+          color: "#e8d8b0",
+          "text-valign": "center",
+          "text-halign": "center",
+          "font-family": "'Iowan Old Style', 'Palatino Linotype', Georgia, serif",
+          "font-size": 12,
+          "text-wrap": "ellipsis",
+          "text-max-width": 100,
+        },
+      },
+      {
+        selector: "node.unknown",
+        style: {
+          "background-color": "#1a140e",
+          "border-color": "#3a2a1c",
+          "border-style": "dashed",
+          color: "#a89878",
+          "font-style": "italic",
+        },
+      },
+      {
+        selector: "node.visited",
+        style: {
+          "background-color": "#2a1f15",
+          "border-color": "#a89878",
+          color: "#e8d8b0",
+        },
+      },
+      {
+        selector: "node.here",
+        style: {
+          "background-color": "#d49a4a",
+          "border-color": "#f5e6c0",
+          "border-width": 2.5,
+          color: "#14100c",
+          "font-weight": "bold",
+        },
+      },
+      {
+        selector: "edge",
+        style: {
+          width: 1.6,
+          "line-color": "#a89878",
+          "curve-style": "straight",
+          "target-arrow-shape": "none",
+          opacity: 0.95,
+        },
+      },
+      {
+        selector: "edge.dim",
+        style: {
+          "line-color": "#3a2a1c",
+          "line-style": "dotted",
+          opacity: 0.7,
+        },
+      },
+      {
+        selector: "edge.stair",
+        style: {
+          "line-style": "dashed",
+          "line-color": "#d49a4a",
+          width: 1.4,
+          opacity: 0.85,
+        },
+      },
+      {
+        selector: "edge.stair.dim",
+        style: {
+          "line-color": "#5a4022",
+          opacity: 0.6,
+        },
+      },
+    ],
+  });
+
+  // Frame the graph nicely on first render.
+  cy.fit(undefined, 30);
+  // Centre on the player so the user immediately sees where they are.
+  if (currentRoom && cy.getElementById(currentRoom).length) {
+    cy.center(cy.getElementById(currentRoom));
+    // Pull back zoom a touch so context is visible too.
+    cy.zoom(Math.min(cy.zoom(), 0.95));
+  }
+}
+
+// SVG fallback used only when Cytoscape can't be loaded. Returns just the
+// <svg> body, to be injected into the #cy-graph container.
+function buildMapSVG(data) {
+  const { layout, edges, currentRoom, visited, sections } = data;
+  const W = 100, H = 44;
   const cx = (id) => layout[id].x + W / 2;
   const cy = (id) => layout[id].y + H / 2;
 
-  // Build edges first so they sit beneath rooms.
   const lineParts = [];
   for (const e of edges) {
     if (!layout[e.from] || !layout[e.to]) continue;
@@ -139,7 +341,6 @@ function buildMapHTML(data) {
     );
   }
 
-  // Build rooms.
   const roomParts = [];
   for (const id of Object.keys(layout)) {
     const r = layout[id];
@@ -155,58 +356,16 @@ function buildMapHTML(data) {
     );
   }
 
-  // Section labels.
   const sectionParts = (sections || []).map((s) =>
     `<text class="section-label" x="${s.x}" y="${s.y}">${escapeXml(s.label)}</text>`
   );
 
-  // Compass rose, top-left of the panel (in SVG units).
-  const compass = `
-    <g class="compass" transform="translate(60, 60)">
-      <circle r="34" />
-      <text class="cn" y="-20" text-anchor="middle">N</text>
-      <text class="cs" y="28" text-anchor="middle">S</text>
-      <text class="cw" x="-22" y="4" text-anchor="middle">W</text>
-      <text class="ce" x="22" y="4" text-anchor="middle">E</text>
-      <line x1="0" y1="-32" x2="0" y2="32" />
-      <line x1="-32" y1="0" x2="32" y2="0" />
-    </g>`;
-
-  // SVG viewbox sized for our layout.
   const VBW = 880, VBH = 1060;
-
-  const svg = `
+  return `
     <svg viewBox="0 0 ${VBW} ${VBH}" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMin meet">
-      <defs>
-        <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5"
-          markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-          <path d="M 0 0 L 10 5 L 0 10 z" />
-        </marker>
-      </defs>
-      ${compass}
-      <text class="title" x="${VBW / 2}" y="44" text-anchor="middle">Ashvale Manor</text>
       ${sectionParts.join("")}
       <g class="edges">${lineParts.join("")}</g>
       <g class="rooms">${roomParts.join("")}</g>
     </svg>`;
-
-  const tokensLine = `Tokens recovered: ${tokens}/${totalTokens}  ·  Rooms discovered: ${visited.size}/${Object.keys(layout).length}`;
-
-  return `
-    <div class="map-panel" role="dialog" aria-label="Map of Ashvale Manor">
-      <div class="map-toolbar">
-        <span class="map-title">Map</span>
-        <span class="map-stats">${escapeXml(tokensLine)}</span>
-        <button id="map-close" type="button" aria-label="Close map">close ✕</button>
-      </div>
-      ${svg}
-      <div class="map-legend">
-        <span class="legend here">★ you are here</span>
-        <span class="legend visited">visited</span>
-        <span class="legend unknown">unvisited</span>
-        <span class="legend stair">— — stair / hidden door</span>
-      </div>
-    </div>
-  `;
 }
 
