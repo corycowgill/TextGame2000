@@ -919,15 +919,21 @@ function dispatch(cmd) {
 
 // ---------- Public entry point ----------
 
-export function executeInput(rawInput) {
-  if (state.over) {
-    render.system("The game is over. Refresh to begin again.");
-    return;
-  }
+const RECOVERY_VERBS = new Set(["restart", "load", "save", "help", "notebook", "score", "map"]);
+// Verbs that don't burn a turn (looking at notes, saving, etc.).
+const NO_TURN_VERBS = new Set(["save", "load", "restart", "help", "hint", "notebook", "score", "map", "quit"]);
 
+export function executeInput(rawInput) {
   const cmd = parse(rawInput);
 
   if (cmd.kind === "empty") return;
+
+  // Game-over recovery: allow restart / load (so the player can revive from a
+  // save) plus harmless meta verbs. Everything else bounces with a hint.
+  if (state.over && cmd.kind === "command" && !RECOVERY_VERBS.has(cmd.verb)) {
+    render.system("The game is over. Type 'restart' (or 'load <slot>') to begin again.");
+    return;
+  }
 
   if (cmd.kind === "again") {
     if (!state.lastCommand) {
@@ -950,8 +956,12 @@ export function executeInput(rawInput) {
   const flagsBefore = { ...state.flags };
   const out = dispatch(cmd);
   if (out != null) render.print(out);
-  state.turnCount += 1;
-  state.lastCommand = cmd.raw;
+  // Meta verbs (looking at your map / saving / asking for a hint) don't
+  // consume a turn. World-acting verbs do.
+  if (!NO_TURN_VERBS.has(cmd.verb)) {
+    state.turnCount += 1;
+    state.lastCommand = cmd.raw;
+  }
 
   // Lamp/oil tick: consume oil only in dark rooms with no cat-light.
   if (!state.over) {

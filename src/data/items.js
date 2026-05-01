@@ -26,6 +26,10 @@ export const ITEMS = {
       "  WILL CONTESTED STOP HOUSEHOLD WILL NOT SPEAK OF IT STOP\n" +
       "  YOUR DISCRETION TRUSTED STOP P DREDGE SOLR STOP",
     takeable: true,
+    onRead(state) {
+      // `read telegram` gives the same text as examine - it is the message.
+      return ITEMS.telegram.desc;
+    },
   },
 
   garden_window: {
