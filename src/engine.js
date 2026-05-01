@@ -572,8 +572,60 @@ function vNotebook() {
   return lines;
 }
 
-// Short labels (max 9 chars) used in the drawn map. Each cell is padded to
-// a uniform width so connectors line up.
+// Pixel layout for the SVG map. Each entry is a top-left (x, y) for the
+// 100x44 room rect, plus the label drawn inside.
+const MAP_PIXEL_LAYOUT = {
+  // Upstairs (top of the diagram)
+  linen_closet:     { x: 250, y: 130, label: "Linen Closet" },
+  landing:          { x: 390, y: 130, label: "Landing" },
+  master_bedroom:   { x: 530, y: 130, label: "Master Bdrm" },
+  nursery:          { x: 390, y:  60, label: "Nursery" },
+
+  // West Wing
+  library:          { x: 250, y: 240, label: "Library" },
+  hidden_passage:   { x: 110, y: 320, label: "Hidden Pass." },
+  portrait_gallery: { x: 250, y: 320, label: "Gallery" },
+  west_corridor:    { x: 390, y: 320, label: "West Corr." },
+
+  // East Wing
+  conservatory:     { x: 530, y: 240, label: "Conservatory" },
+  stone_folly:      { x: 670, y: 240, label: "Stone Folly" },
+  east_corridor:    { x: 530, y: 320, label: "East Corr." },
+  hedge_maze:       { x: 670, y: 320, label: "Hedge Maze" },
+
+  // Ground floor (the foyer line)
+  servants_hall:    { x: 110, y: 410, label: "Servants" },
+  dining_room:      { x: 250, y: 410, label: "Dining Rm" },
+  foyer:            { x: 390, y: 410, label: "FOYER" },
+  study:            { x: 530, y: 410, label: "Study" },
+
+  // South of the foyer
+  drawing_room:     { x: 390, y: 490, label: "Drawing Rm" },
+  garden:           { x: 390, y: 570, label: "Garden" },
+  front_door:       { x: 250, y: 570, label: "Front Door" },
+  iron_gate:        { x: 250, y: 650, label: "Iron Gate" },
+
+  // Cellar
+  wine_cellar:      { x: 250, y: 760, label: "Wine Cellar" },
+  cellar_stair:     { x: 250, y: 830, label: "Cellar Stair" },
+  boiler_room:      { x: 390, y: 830, label: "Boiler Rm" },
+  coal_chute:       { x: 530, y: 830, label: "Coal Chute" },
+
+  // Crypt
+  crypt_stair:      { x: 250, y: 960, label: "Crypt Stair" },
+  family_crypt:     { x: 390, y: 960, label: "Family Crypt" },
+  family_chapel:    { x: 530, y: 960, label: "Family Chapel" },
+};
+
+// Section labels to draw as headings on the SVG.
+const MAP_SECTIONS = [
+  { x: 110, y: 115, label: "Upstairs" },
+  { x: 110, y: 225, label: "Ground Floor" },
+  { x: 110, y: 745, label: "Cellar (down from Foyer)" },
+  { x: 110, y: 945, label: "Crypt (foyer clock)" },
+];
+
+// Short labels (max 9 chars) used in the textual map fallback.
 const MAP_LABELS = {
   iron_gate: "Iron Gate",
   front_door: "Front Door",
@@ -619,14 +671,61 @@ function mapCell(id) {
   return "[" + body + "]";
 }
 
+// Build the edge list from ROOMS data + a small set of explicit
+// inter-region transitions (stairs, the foyer clock).
+function buildMapEdges() {
+  const edges = [];
+  const seen = new Set();
+  // Direct exits between rooms that both appear in the map layout.
+  for (const [id, r] of Object.entries(ROOMS)) {
+    if (!MAP_PIXEL_LAYOUT[id]) continue;
+    for (const dest of Object.values(r.exits || {})) {
+      if (!dest || !MAP_PIXEL_LAYOUT[dest]) continue;
+      const key = id < dest ? `${id}|${dest}` : `${dest}|${id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push({ from: id, to: dest, kind: "exit" });
+    }
+  }
+  // Inter-level transitions that aren't expressed as direct exits in ROOMS
+  // (the foyer clock, the upstairs stair, the cellar stair).
+  const stairs = [
+    ["foyer", "landing"],         // up
+    ["foyer", "cellar_stair"],    // down (after pry)
+    ["foyer", "crypt_stair"],     // clock (after 4 tokens)
+  ];
+  for (const [a, b] of stairs) {
+    if (!MAP_PIXEL_LAYOUT[a] || !MAP_PIXEL_LAYOUT[b]) continue;
+    const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    edges.push({ from: a, to: b, kind: "stair" });
+  }
+  return edges;
+}
+
 function vMap() {
+  // Render an SVG diagram in an overlay panel. The textual fallback is no
+  // longer printed in the transcript - the overlay replaces it.
+  render.showMap({
+    layout: MAP_PIXEL_LAYOUT,
+    edges: buildMapEdges(),
+    sections: MAP_SECTIONS,
+    currentRoom: state.currentRoom,
+    visited: state.visited,
+    tokens: state.tokensCollected.length,
+    totalTokens: 4,
+  });
+  // Don't print anything in the transcript.
+  return null;
+}
+
+// Legacy textual map (kept for headless tests / fallback). Not currently called.
+function vMapText() {
   const m = mapCell;
-  // Helpers for explicit column-aligned drawing.
-  // Cell width = 14, connector " ── " = 4. Indent = 3.
-  // Cell at column index c starts at character column 3 + c * 18; centre at +7.
   const sp = (n) => " ".repeat(Math.max(0, n));
-  const at = (c) => sp(3 + c * 18);          // start of cell column c
-  const center = (c) => sp(3 + c * 18 + 7);  // centre of cell column c
+  const at = (c) => sp(3 + c * 18);
+  const center = (c) => sp(3 + c * 18 + 7);
   const lines = [];
 
   lines.push("              ASHVALE MANOR — MAP");
