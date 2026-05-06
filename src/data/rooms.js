@@ -328,7 +328,7 @@ export const ROOMS = {
       "and one shelf of poetry that does not match the rest. A reading chair sits angled " +
       "to a cold fire. The corridor is south.",
     exits: { south: "west_corridor" },
-    contents: ["legal_books", "poetry_shelf"],
+    contents: ["legal_books", "poetry_shelf", "green_book"],
   },
 
   portrait_gallery: {
@@ -626,7 +626,17 @@ export const ROOMS = {
         if (isFull || isCloseEnough) {
           state.over = true;
           state.flags.won = true;
-          return [
+          // Award the completion bonus, if not yet awarded.
+          // (engine.awardPoints is module-scoped to engine; we set a flag and
+          //  let the engine grant the points on this turn's tail.)
+          state.flags.wonClean = true;
+          // The ending varies by score. Three tiers, all narratively coherent.
+          const score = state.score || 0;
+          const rank = score >= 110 ? "Pristine"
+                      : score >= 85 ? "Adept Investigator"
+                      : score >= 60 ? "Competent"
+                                    : "Earnest";
+          const opening = [
             "",
             "You speak the name into the circle. 'PEMBERTON DREDGE.'",
             "",
@@ -634,14 +644,28 @@ export const ROOMS = {
             "",
             "  'You have the right of it,' he says. 'And now I can lay down with my brother.'",
             "",
+          ];
+          const closeByRank = score >= 110 ? [
+            "Cassandra. Julien. Beatrice. Hollis. They take the cardinal points of the circle and bow, each in turn, to Edmund — and to you. There is recognition in it: an investigator who looked, and who saw.",
+            "The four candles, all together, go out. Above, distantly, a clock strikes the half-hour — a normal half-hour, not the thirteenth. The fog rolls back. Dawn breaks on the moor in clean ribbons of pale gold.",
+            "You climb out into a house that no longer expects to keep you. The black cat walks in front of you, tail high; behind, a chapel door closes, and the Ashvales sleep.",
+            "",
+            "**THE END — Ashvale is freed; nothing in it remains undone.**",
+          ] : score >= 60 ? [
             "Cassandra. Julien. Beatrice. Hollis. They take the cardinal points of the circle and bow, each in turn, to Edmund. The four candles, all together, go out.",
-            "",
             "Above, distantly, a clock strikes the half-hour — a normal half-hour, not the thirteenth. The fog rolls back from the windows. Dawn is grey on the moor.",
-            "",
-            "You climb out into a house that no longer expects to keep you. The black cat follows.",
+            "You climb out into a house that no longer expects to keep you. The black cat follows, eventually.",
             "",
             "**THE END — Ashvale is freed.**",
+          ] : [
+            "Cassandra. Julien. Beatrice. Hollis. They take the cardinal points of the circle, but their farewells are brief: you have done what was strictly required, and no more. The four candles gutter and die.",
+            "Above, the clock strikes once, slow. The fog does not lift; it merely thins. Dawn, when it comes, does not arrive in colour.",
+            "You climb out into a quiet house. The cat is not in the foyer.",
+            "",
+            "**THE END — Ashvale is freed, but the cost lingers.**",
           ];
+          // The engine prints the final score line after this returns.
+          return [...opening, ...closeByRank];
         }
         // Wrong name.
         state.over = true;

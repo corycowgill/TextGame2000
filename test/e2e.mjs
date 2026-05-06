@@ -400,6 +400,10 @@ expect("loaded final state",
 t = run("say pemberton dredge");
 expect("WIN: speak the killer's name", st().flags.won === true);
 expect("Win text printed", t.includes("THE END") && (t.includes("freed") || t.includes("PEMBERTON")));
+expect("Final score line printed", t.includes("Final score:") && t.includes("rank:"));
+expect("Score is positive after win", (st().score || 0) > 0);
+expect("Win bonus credited",
+  (st().scoreLog || []).some((r) => r.includes("manor freed")));
 
 // =========== MAP feature ===========
 // Restart fresh and test map command flow
@@ -447,6 +451,49 @@ engine.executeInput("look");                           // blocked by over
 engine.executeInput("load auto");
 expect("recovered to milestone (no longer over)", st().over === false);
 expect("recovered with teacup token still held", st().tokensCollected.includes("teacup_token"));
+
+// =========== NEW: scoring on milestones ===========
+expect("score >= 20 after recovering teacup token", (st().score || 0) >= 20);
+expect("score log records token recovery",
+  (st().scoreLog || []).some((r) => r.toLowerCase().includes("teacup")));
+expect("score log records cassandra release",
+  (st().scoreLog || []).some((r) => r.toLowerCase().includes("cassandra")));
+
+// =========== NEW: optional discoveries (cat name + green book + ring) ===========
+engine.executeInput("restart");
+const optionalSetup = [
+  "n","e","open window","n","n",
+  "feed cat",       // gate cat name discovery
+  "x cat",          // examine after feed -> reveals "Atropos"
+];
+for (const c of optionalSetup) engine.executeInput(c);
+expect("foundCatName flag set after examine post-feed", st().flags.foundCatName === true);
+expect("score includes cat-name bonus",
+  (st().scoreLog || []).some((r) => r.toLowerCase().includes("cat finally named")));
+
+// Wedding ring (master bedroom).
+const ringSetup = [
+  "e",                                    // -> study
+  "search edmund","unlock drawer with fob","take will","read will","take lamp","w",
+  "break west seal","nw","w",
+  "x cassandra portrait","x julien portrait","x beatrice portrait","x edmund portrait",
+  "push edmund portrait","n","take letter opener","s","e","se",
+  "cut crepe","up","test floor",
+  "e",                                    // landing -> master_bedroom
+  "search vanity",
+];
+for (const c of ringSetup) engine.executeInput(c);
+expect("foundWeddingRing flag", st().flags.foundWeddingRing === true);
+expect("wedding ring in inventory", st().inventory.includes("wedding_ring"));
+
+// Green book (library).
+engine.executeInput("w");                              // back to landing
+engine.executeInput("down");                            // -> foyer
+engine.executeInput("nw");                              // -> west_corridor
+engine.executeInput("n");                               // -> library
+let gb = run("read green book");
+expect("read green book", st().flags.readGreenBook === true);
+expect("green book text printed", gb.includes("Edmund") || gb.includes("brother"));
 
 console.log(`\n=== RESULTS: ${pass} passed, ${fail} failed ===`);
 if (failures.length) {

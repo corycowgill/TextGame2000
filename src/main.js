@@ -1,5 +1,22 @@
 import { startGame, executeInput } from "./engine.js";
 import * as render from "./render.js";
+import { VERBS } from "./parser.js";
+
+// Build the autocomplete vocabulary once at boot. It's the union of every
+// verb alias plus a small set of common nouns/directions, so Tab on a fresh
+// input cycles through "go, look, examine, take, …".
+const AUTOCOMPLETE_VOCAB = (() => {
+  const set = new Set();
+  for (const aliases of Object.values(VERBS)) {
+    for (const a of aliases) if (a.length > 1) set.add(a);
+  }
+  // Common nouns the player will type a lot.
+  for (const n of ["lamp", "letter", "telegram", "drawer", "fob", "key", "crepe", "valve",
+                   "window", "door", "diary", "ledger", "monkshood", "locket", "watch", "token"]) {
+    set.add(n);
+  }
+  return [...set].sort();
+})();
 
 function showBootError(err) {
   // Best-effort: write the error into the transcript so the user sees something.
@@ -42,7 +59,40 @@ function init() {
     let historyIndex = -1;
     let inProgress = "";
 
+    // Tab autocomplete: completes the last word in the input. Repeated Tab
+    // cycles through the matches.
+    let tabMatches = null;
+    let tabIndex = 0;
+    let tabPrefix = "";
+    let tabPrefixLen = 0;
+
     input.addEventListener("keydown", (e) => {
+      // Reset tab cycle on any non-Tab key.
+      if (e.key !== "Tab") {
+        tabMatches = null;
+      }
+      if (e.key === "Tab") {
+        e.preventDefault();
+        const value = input.value;
+        if (tabMatches === null) {
+          // Find the last word (alphabet only) in the input.
+          const m = value.match(/([A-Za-z]+)$/);
+          tabPrefix = m ? m[1].toLowerCase() : "";
+          tabPrefixLen = m ? m[1].length : 0;
+          tabMatches = AUTOCOMPLETE_VOCAB.filter((w) => w.startsWith(tabPrefix));
+          tabIndex = 0;
+        } else {
+          tabIndex = (tabIndex + 1) % Math.max(1, tabMatches.length);
+        }
+        if (tabMatches.length === 0) return;
+        const completion = tabMatches[tabIndex];
+        const stem = value.slice(0, value.length - tabPrefixLen);
+        input.value = stem + completion;
+        // Update the running prefix length so consecutive Tabs replace cleanly.
+        tabPrefixLen = completion.length;
+        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+        return;
+      }
       if (e.key === "ArrowUp") {
         if (history.length === 0) return;
         if (historyIndex === -1) {

@@ -58,8 +58,25 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 | Save       | `save [slot]`, `load [slot]`, `restart` (auto-saves to slot `auto` on milestones) |
 | Meta       | `wait`/`z`, `again`/`g`, `exits`, `help`, `hint`, `notebook`, `map`, `score`, `quit` |
 
-The input box supports **up/down arrow** for command history and **Esc** to
-clear the field.
+The input box supports **up/down arrow** for command history, **Tab** to
+autocomplete the word you're typing (cycles through matches on repeat), and
+**Esc** to clear the field.
+
+## Scoring
+
+The game tracks a hidden score (max ~130). Points come from:
+
+- 20 per spirit-token recovered
+- 5 per ghost laid to rest cleanly
+- 3–5 per optional discovery (reading the right thing, finding the cat's name,
+  searching the vanity for Edmund's wedding ring, reading the green-cloth
+  book in the library, etc.)
+- 10 for breaking the curse
+
+`score` shows the running total + your current rank. Three ending variants
+trigger at the chapel based on score: *Pristine* (≥110), *Adept Investigator*
+or *Competent* (60–109), and *Earnest* (<60). The cleaner your run, the
+warmer the manor's farewell.
 
 Refer back to the most recent noun with `it`.
 

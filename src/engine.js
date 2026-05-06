@@ -66,7 +66,13 @@ export function newState() {
       tokensPlaced: false,
       candlesLit: false,
       won: false,
+      wonClean: false,
+      foundCatName: false,
+      foundWeddingRing: false,
+      readGreenBook: false,
     },
+    score: 0,
+    scoreLog: [],
     turnCount: 0,
     lampOil: 30,
     visited: new Set(),
@@ -82,6 +88,23 @@ export function newState() {
 let state = newState();
 export function getState() { return state; }
 export function setState(s) { state = s; }
+
+// ---------- Scoring ----------
+
+export const MAX_SCORE = 130;
+
+// Award points once for the given reason; subsequent calls with the same
+// reason are ignored (idempotent). Quietly notifies the player when a point
+// is earned, so the world feels responsive.
+export function awardPoints(amount, reason) {
+  if (!state.scoreLog) state.scoreLog = [];
+  if (state.scoreLog.includes(reason)) return false;
+  state.scoreLog.push(reason);
+  state.score = (state.score || 0) + amount;
+  // Subtle inline notice. The score command shows the running total.
+  render.system(`(+${amount} — ${reason})`);
+  return true;
+}
 
 // ---------- Scope resolution ----------
 
@@ -822,8 +845,18 @@ function vMapText() {
   return lines;
 }
 
+function rankFor(score) {
+  if (score >= 110) return "Pristine";       // close to a perfect run
+  if (score >=  85) return "Adept Investigator";
+  if (score >=  60) return "Competent";
+  if (score >=  30) return "Earnest";
+  return "Untrained";
+}
+
 function vScore() {
+  const score = state.score || 0;
   return [
+    `Score: ${score}/${MAX_SCORE}  (${rankFor(score)})`,
     `Turn: ${state.turnCount}`,
     `Tokens recovered: ${state.tokensCollected.length}/4`,
     `Notebook entries: ${NOTEBOOK_ENTRIES.filter((e) => state.flags[e.flag]).length}`,
@@ -1019,10 +1052,63 @@ export function executeInput(rawInput) {
     state.lastCommand = cmd.raw;
   }
 
-  // Milestone auto-save: a token was just recovered.
+  // Token milestone scoring (auto-save happens AFTER all scoring below so the
+  // snapshot captures every point earned this turn, not just some).
+  let tokenJustEarned = false;
   if (state.tokensCollected.length > tokensBefore && !state.over) {
-    autoSave();
+    awardPoints(20, `recovered ${state.tokensCollected[state.tokensCollected.length - 1].replace(/_/g, " ")}`);
+    tokenJustEarned = true;
   }
+  // Score ghost releases (separate from the token, for clean releases).
+  const releasedFlags = ["cassandraReleased", "julienReleased", "beatriceReleased", "hollisReleased"];
+  for (const f of releasedFlags) {
+    if (state.flags[f] && !flagsBefore[f]) {
+      awardPoints(5, `${f.replace("Released", "")} laid to rest`);
+    }
+  }
+  // Score one-time optional discoveries.
+  const optional = [
+    ["readEdmundLetter", 5, "you read Edmund's last letter"],
+    ["readSlate", 5, "you read Mrs. Crow's slate"],
+    ["catFed", 3, "you befriended the cat"],
+    ["readWillFragment", 5, "you read the will fragment"],
+    ["readBotanicalGuide", 3, "you consulted the botanical guide"],
+    ["readJulienDiary", 3, "you read Julien's diary"],
+    ["openedLocket", 3, "you opened Beatrice's locket"],
+    ["readWineLedger", 3, "you read the wine cellar ledger"],
+    ["letterD_east", 2, "you noted the sundial's letter"],
+    ["letterR_west", 2, "you noted the letter on the blade"],
+    ["letterE_upstairs", 2, "you noted the letter in the locket"],
+    ["letterD_cellar", 2, "you noted the ledger's signature"],
+  ];
+  for (const [flag, pts, reason] of optional) {
+    if (state.flags[flag] && !flagsBefore[flag]) awardPoints(pts, reason);
+  }
+  // Hidden discoveries (defined later in the data files).
+  const hidden = [
+    ["foundCatName", 3, "the cat finally named itself"],
+    ["foundWeddingRing", 5, "you found Edmund's wedding ring"],
+    ["readGreenBook", 5, "you read the green-cloth book"],
+  ];
+  for (const [flag, pts, reason] of hidden) {
+    if (state.flags[flag] && !flagsBefore[flag]) awardPoints(pts, reason);
+  }
+  // Mark Hollis as released when his watch is taken (he stays at peace once
+  // the watch is in hand) — keeps the "released" scoring symmetrical.
+  if (state.tokensCollected.includes("pocket_watch_token") && !state.flags.hollisReleased) {
+    state.flags.hollisReleased = true;
+  }
+  // Win bonus + final score line, printed once after the chapel finale.
+  if (state.flags.won && !flagsBefore.won) {
+    awardPoints(10, "the manor freed");
+    const score = state.score || 0;
+    const rank = rankFor(score);
+    render.print("");
+    render.win(`Final score: ${score}/${MAX_SCORE}  —  rank: ${rank}.`);
+  }
+
+  // Auto-save AFTER all scoring so the snapshot is internally consistent.
+  if (tokenJustEarned) autoSave();
 
   // Occasional atmospheric flavor line. Skipped on look/examine and other
   // verbs that don't move the world; only world-acting turns can trigger it.
@@ -1076,7 +1162,12 @@ export function startGame() {
     "household scattered. You are Dr. Alistair Vance, paranormal investigator. You have until " +
     "the manor's clock strikes thirteen.\n"
   );
-  render.print("Type `help` for commands.\n");
+  // First-turn onboarding for new players. Concise, not patronising.
+  render.system(
+    "First time? Try `look`, `examine telegram`, `take telegram`, then `north`.\n" +
+    "Useful any time: `help`, `hint`, `notebook`, `map`. Up/Down for history. Tab to autocomplete."
+  );
+  render.print("");
   enterRoom(state.currentRoom);
   const r = room();
   render.updateStatus({

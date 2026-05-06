@@ -164,20 +164,38 @@ export const NPCS = {
     id: "black_cat",
     names: ["cat", "black cat", "kitten"],
     short: "a black cat",
-    desc:
-      "A long black cat with a white chevron at the throat. It watches you as if assessing " +
-      "a tradesman's references. When you move, it moves; when you stop, it stops.",
+    desc(state) {
+      const base =
+        "A long black cat with a white chevron at the throat. It watches you as if assessing " +
+        "a tradesman's references. When you move, it moves; when you stop, it stops.";
+      if (state.flags.foundCatName) {
+        return base + " You know now: its name is Atropos.";
+      }
+      return base;
+    },
     takeable: false,
     dialogue: {
       default: "The cat looks at you with an expression best described as *editorial*.",
+      name: "It blinks once, slowly. The brass collar on its throat is just visible: ATROPOS.",
+      atropos: "It twitches an ear, acknowledging itself.",
     },
     onCommand(state, cmd) {
       if (cmd.verb === "feed" || cmd.verb === "give") {
-        state.flags.catFed = true;
+        if (!state.flags.catFed) state.flags.catFed = true;
         return "The cat accepts your offering with grave courtesy and now seems to consider you part of its retinue. It will follow.";
       }
       if (cmd.verb === "take" || cmd.verb === "pick") {
         return "The cat declines, with prejudice.";
+      }
+      // Discovering the cat's name (optional content).
+      if (cmd.verb === "examine" && state.flags.catFed && !state.flags.foundCatName) {
+        // Subtle reveal on the second close examine after befriending it.
+        // We require state.flags.catFed so it's gated behind a player choice.
+        state.flags.foundCatName = true;
+        return [
+          "A long black cat with a white chevron at the throat. It tilts its head — long enough that you see, for the first time, a thin brass collar tag at its throat.",
+          "  ATROPOS, it reads. — The third Fate, the one with the shears.",
+        ];
       }
       return null;
     },

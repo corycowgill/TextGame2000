@@ -344,6 +344,28 @@ export const ITEMS = {
     takeable: false,
   },
 
+  green_book: {
+    id: "green_book",
+    names: ["green book", "green volume", "green-cloth book", "anonymous book", "slim volume"],
+    short: "the slim green-cloth volume",
+    desc:
+      "A slim volume bound in green cloth, printed for private circulation. The verses, in " +
+      "Edmund's hand, are about a brother. They are not very good poems. They are very good " +
+      "love.",
+    takeable: false,
+    onRead(state) {
+      state.flags.readGreenBook = true;
+      return [
+        "You read one of the poems aloud, very softly:",
+        "  'When I was small you carried me by the hand;",
+        "   when you were small I would not be carried.",
+        "   For this and other accountings, brother,",
+        "   I am sorry until I am no longer.'",
+        "Edmund wrote this for Julien, and never gave it.",
+      ];
+    },
+  },
+
   portrait_cassandra_2: {
     id: "portrait_cassandra_2",
     names: ["cassandra portrait gallery", "cassandra gallery", "first portrait", "lady cassandra portrait"],
@@ -438,6 +460,26 @@ export const ITEMS = {
     short: "a silver-backed vanity mirror",
     desc: "A silver-backed vanity mirror, dulled with age. In the angle of the glass, you catch a glimpse of a woman who is not behind you.",
     takeable: false,
+    onCommand(state, cmd) {
+      // Optional: searching the vanity finds Edmund's wedding ring (lore).
+      if (cmd.verb === "search") {
+        if (state.flags.foundWeddingRing) return "The vanity has no more to give.";
+        state.flags.foundWeddingRing = true;
+        state.inventory.push("wedding_ring");
+        return "Tucked behind the vanity's swivel, you find a man's wedding ring — Edmund's, by its inscription. He had taken it off, then changed his mind too late.";
+      }
+      return null;
+    },
+  },
+
+  wedding_ring: {
+    id: "wedding_ring",
+    names: ["wedding ring", "ring", "edmund's ring"],
+    short: "Edmund's wedding ring",
+    desc:
+      "A plain gold band. Inside, in fine engraving: 'EAA & CMA — 1872 — and after.' " +
+      "Edmund and Cassandra. Not a marriage that ended; a marriage that was ended.",
+    takeable: true,
   },
 
   lavender_pouch: {
