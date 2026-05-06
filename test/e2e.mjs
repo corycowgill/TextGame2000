@@ -23,8 +23,24 @@ const stEl = (id) => (els[id] ||= {
 });
 const overlay = { id: "map-overlay", _h: "", set innerHTML(v) { this._h = v; }, get innerHTML() { return this._h; }, style: {}, appendChild() {}, addEventListener() {}, querySelector() { return null; } };
 class FakeEl {
-  constructor(t) { this.tagName = (t||"").toUpperCase(); this.children = []; this._h = ""; this.style = {}; this.id = ""; this.textContent = ""; this.className = ""; }
-  appendChild(c) { this.children.push(c); }
+  constructor(t) {
+    this.tagName = (t||"").toUpperCase();
+    this.children = [];
+    this._h = "";
+    this.style = {};
+    this.id = "";
+    this._textContent = "";
+    this.className = "";
+    this.dataset = {};
+  }
+  appendChild(c) {
+    this.children.push(c);
+    // Mirror what a real DOM node does: textContent of the parent reflects
+    // the concatenation of its children's textContent.
+    this._textContent += (c && c.textContent) || "";
+  }
+  set textContent(v) { this._textContent = v; }
+  get textContent() { return this._textContent; }
   addEventListener() {}
   set innerHTML(v) { this._h = v; }
   get innerHTML() { return this._h; }
@@ -42,6 +58,7 @@ globalThis.document = {
     return stEl(id);
   },
   createElement(tag) { return new FakeEl(tag); },
+  createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
   addEventListener: () => {}, readyState: "complete",
 };
 globalThis.window = { addEventListener: () => {} };
@@ -494,6 +511,37 @@ engine.executeInput("n");                               // -> library
 let gb = run("read green book");
 expect("read green book", st().flags.readGreenBook === true);
 expect("green book text printed", gb.includes("Edmund") || gb.includes("brother"));
+
+// =========== NEW: brief / verbose mode ===========
+engine.executeInput("restart");
+let v = run("brief");
+expect("brief command sets flag", st().flags.brief === true);
+expect("brief command confirms", v.toLowerCase().includes("brief"));
+v = run("verbose");
+expect("verbose command clears flag", st().flags.brief === false);
+
+// =========== NEW: dynamic NPC dialogue ===========
+// Default talk-to-Crow with no progress should mention slate.
+engine.executeInput("restart");
+const cmds_intro = ["n","e","open window","n","n","w","w"];
+for (const c of cmds_intro) engine.executeInput(c);
+let cd = run("talk to crow");
+expect("crow default mentions slate", cd.toLowerCase().includes("slate") || cd.toLowerCase().includes("mournfully"));
+
+// After cassandra release, default should change.
+const cmds_token = [
+  "e","e","e","search edmund","unlock drawer with fob","take will","read will","take lamp","w",
+  "break east seal","ne","ne","read guide","take monkshood","show monkshood to cassandra",
+  "sw","sw","w","w",  // back to servants_hall
+];
+for (const c of cmds_token) engine.executeInput(c);
+let cd2 = run("talk to crow");
+expect("crow default reflects progress (one less restless / now / one more)",
+  cd2.toLowerCase().includes("one less") || cd2.toLowerCase().includes("one more") || cd2.toLowerCase().includes("now"));
+
+// Topic-specific dynamic dialogue: ask about ghost.
+let cgg = run("ask crow about ghost");
+expect("crow ghost-topic reflects token count", /still wait|still listen/i.test(cgg) || cgg.includes("STILL"));
 
 console.log(`\n=== RESULTS: ${pass} passed, ${fail} failed ===`);
 if (failures.length) {

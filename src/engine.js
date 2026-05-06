@@ -70,6 +70,7 @@ export function newState() {
       foundCatName: false,
       foundWeddingRing: false,
       readGreenBook: false,
+      brief: false, // brief mode: revisits get short descriptions
     },
     score: 0,
     scoreLog: [],
@@ -199,14 +200,35 @@ function describeRoom(full = true) {
   else render.print(shortText);
 
   const { items, npcs } = visibleEntities();
-  const lines = [];
-  for (const id of npcs) lines.push(`${capFirst(NPCS[id].short)} is here.`);
+  // Build clickable contents listing.
+  for (const id of npcs) {
+    const npc = NPCS[id];
+    const target = (npc.names && npc.names[0]) || id;
+    render.printRich([
+      `${capFirst(npc.short)}`,
+      ` is here.`,
+    ].length === 0 ? [] : [
+      { noun: capFirst(npc.short), target },
+      ` is here.`,
+    ]);
+  }
   for (const id of items) {
     const it = ITEMS[id];
-    if (it.takeable !== false) lines.push(`There is ${it.short} here.`);
-    else lines.push(`You see ${it.short}.`);
+    const target = (it.names && it.names[0]) || id;
+    if (it.takeable !== false) {
+      render.printRich([
+        `There is `,
+        { noun: it.short, target },
+        ` here.`,
+      ]);
+    } else {
+      render.printRich([
+        `You see `,
+        { noun: it.short, target },
+        `.`,
+      ]);
+    }
   }
-  if (lines.length) render.print(lines);
 
   const exits = Object.keys(r.exits || {}).filter((k) => r.exits[k]);
   if (exits.length) render.print(`Exits: ${exits.join(", ")}.`);
@@ -242,7 +264,11 @@ function enterRoom(roomId, silent = false) {
     const firstVisit = !state.visited.has(target);
     state.currentRoom = target;
     state.visited.add(target);
-    if (!silent) describeRoom(true);
+    if (!silent) {
+      // Brief mode: short description on revisits, full on first visit.
+      const useFull = firstVisit || !state.flags.brief;
+      describeRoom(useFull);
+    }
     // Auto-save the first time you enter any room - so a death right after
     // exploring a new region doesn't undo your progress.
     if (firstVisit && !state.over) autoSave();
@@ -402,6 +428,13 @@ function vBreak(cmd) {
   return "Some things resist breaking, and this is one of them.";
 }
 
+function evalDialogue(value, state) {
+  if (typeof value === "function") {
+    try { return value(state); } catch { return null; }
+  }
+  return value;
+}
+
 function vTalk(cmd) {
   if (!cmd.noun) return "Talk to whom?";
   const { npcs } = visibleEntities();
@@ -414,7 +447,8 @@ function vTalk(cmd) {
     const out = npc.onTalk(state);
     if (out != null) return out;
   }
-  return (npc.dialogue && npc.dialogue.default) || `${capFirst(npc.short)} regards you in silence.`;
+  const def = npc.dialogue && evalDialogue(npc.dialogue.default, state);
+  return def || `${capFirst(npc.short)} regards you in silence.`;
 }
 
 function vAsk(cmd) {
@@ -435,7 +469,10 @@ function vAsk(cmd) {
     // Match topic against dialogue keys (substring on either side).
     for (const key of Object.keys(npc.dialogue)) {
       if (key === "default") continue;
-      if (topic.includes(key) || key.includes(topic)) return npc.dialogue[key];
+      if (topic.includes(key) || key.includes(topic)) {
+        const v = evalDialogue(npc.dialogue[key], state);
+        if (v != null) return v;
+      }
     }
   }
   return `${capFirst(npc.short)} has nothing to say about that.`;
@@ -906,6 +943,16 @@ function vExits() {
   return "Obvious exits: " + exits.join(", ") + ".";
 }
 
+function vVerbose() {
+  state.flags.brief = false;
+  return "Verbose mode: every room is fully described on each visit.";
+}
+
+function vBrief() {
+  state.flags.brief = true;
+  return "Brief mode: a room you have visited before will only show its name and exits. (Use `look` to see the full description, or `verbose` to switch back.)";
+}
+
 function vHelp() {
   return [
     "Commands:",
@@ -920,7 +967,9 @@ function vHelp() {
     "  Save:     save [slot], load [slot], restart",
     "            (auto-saves to slot 'auto' on each milestone)",
     "  Meta:     wait (z), again (g), help, hint, notebook, map, score, quit",
-    "  Input:    up/down arrows = command history, Esc = clear",
+    "            verbose / brief (revisits show short descriptions)",
+    "  Input:    up/down arrows = history, Tab = autocomplete, Esc = clear",
+    "            click any underlined item or NPC to examine it",
     "  Refer back to the most recent noun with `it`.",
   ];
 }
@@ -951,7 +1000,7 @@ const HANDLERS = {
   show: vShow, give: vGive,
   save: vSave, load: vLoad, restart: vRestart,
   hint: vHint, notebook: vNotebook, score: vScore, map: vMap,
-  exits: vExits,
+  exits: vExits, verbose: vVerbose, brief: vBrief,
 };
 
 function dispatch(cmd) {
@@ -1005,7 +1054,7 @@ function dispatch(cmd) {
 
 const RECOVERY_VERBS = new Set(["restart", "load", "save", "help", "notebook", "score", "map"]);
 // Verbs that don't burn a turn (looking at notes, saving, etc.).
-const NO_TURN_VERBS = new Set(["save", "load", "restart", "help", "hint", "notebook", "score", "map", "quit", "exits"]);
+const NO_TURN_VERBS = new Set(["save", "load", "restart", "help", "hint", "notebook", "score", "map", "quit", "exits", "verbose", "brief"]);
 
 export function executeInput(rawInput) {
   const cmd = parse(rawInput);
@@ -1126,13 +1175,17 @@ export function executeInput(rawInput) {
         state.lampOil = Math.max(0, state.lampOil - 1);
         if (state.lampOil === 0) {
           state.flags.lampLit = false;
-          render.system("The lamp gutters and goes out. The dark closes in.");
+          render.system("The lamp's flame leans, leans further, and goes out.");
           if (r.dark) {
             state.over = true;
-            render.death("In the cellar's dark, with no flame, you misjudge the stair. Refresh to begin again.");
+            render.death(
+              "In the dark, you reach for a wall that is not where you remember leaving it. " +
+              "The flagstones come up and meet your forehead. Whatever waits in this cellar " +
+              "with you waits patiently. The manor counts you among its dead now."
+            );
           }
         } else if (state.lampOil <= 5) {
-          render.system("(The lamp burns low.)");
+          render.system(`(The lamp burns low — ${state.lampOil} oil.)`);
         }
       }
     }

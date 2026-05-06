@@ -3,7 +3,16 @@ const transcript = [];
 const fakeT = { appendChild(n) { transcript.push(n.textContent); }, set scrollTop(_) {}, get scrollHeight() { return 0; }, set innerHTML(v) { if (v === "") transcript.length = 0; }, addEventListener: () => {} };
 const els = {};
 const stEl = id => (els[id] ||= { textContent: "", remove() {} });
-class FakeEl { constructor(t) { this.tagName = (t||"").toUpperCase(); this.children = []; this._h = ""; this.style = {}; } appendChild(c) { this.children.push(c); } addEventListener() {} set innerHTML(v) { this._h = v; } get innerHTML() { return this._h; } remove() {} }
+class FakeEl {
+  constructor(t) { this.tagName = (t||"").toUpperCase(); this.children = []; this._h = ""; this.style = {}; this._tc = ""; this.dataset = {}; }
+  appendChild(c) { this.children.push(c); this._tc += (c && c.textContent) || ""; }
+  set textContent(v) { this._tc = v; }
+  get textContent() { return this._tc; }
+  addEventListener() {}
+  set innerHTML(v) { this._h = v; }
+  get innerHTML() { return this._h; }
+  remove() {}
+}
 globalThis.document = {
   head: new FakeEl("head"), body: new FakeEl("body"),
   getElementById(id) {
@@ -13,6 +22,7 @@ globalThis.document = {
     return stEl(id);
   },
   createElement(tag) { return new FakeEl(tag); },
+  createTextNode(text) { return { nodeType: 3, textContent: String(text) }; },
   addEventListener: () => {}, readyState: "complete",
 };
 globalThis.window = { addEventListener: () => {} };

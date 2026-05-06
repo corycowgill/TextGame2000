@@ -100,6 +100,17 @@ body {
   font-weight: 600;
 }
 
+#transcript .noun {
+  color: var(--ink-bright);
+  border-bottom: 1px dotted var(--ink-dim);
+  cursor: pointer;
+  transition: color 80ms ease, border-color 80ms ease;
+}
+#transcript .noun:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 #transcript .win {
   color: #6c6;
   font-weight: 600;

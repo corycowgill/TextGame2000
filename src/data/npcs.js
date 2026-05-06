@@ -5,26 +5,63 @@ export const NPCS = {
     id: "mrs_crow",
     names: ["crow", "mrs crow", "mrs. crow", "cook", "woman"],
     short: "Mrs. Crow, the cook",
-    desc:
-      "Mrs. Crow is a small woman in black bombazine, hands folded in her lap. Her eyes " +
-      "follow you, but her mouth does not move. A chalk-slate rests beside her.",
+    desc(state) {
+      if (state.flags.won) {
+        return "Mrs. Crow stands at the range now, the slate forgotten. She is humming, very softly.";
+      }
+      if (state.tokensCollected.length === 4) {
+        return "Mrs. Crow's hand has lifted from the slate. She is watching you the way a witness watches a door.";
+      }
+      return "Mrs. Crow is a small woman in black bombazine, hands folded in her lap. Her eyes follow you, but her mouth does not move. A chalk-slate rests beside her.";
+    },
     takeable: false,
     dialogue: {
-      default: "Mrs. Crow regards you mournfully and taps the slate beside her. (Try `read slate`.)",
-      will:
-        "She writes, slowly: HE BROUGHT A NEW WILL. THE OLD ONE BURNT IN THE GRATE.",
-      edmund:
-        "She writes: A GOOD MAN. HE WAS FRIGHTENED THE LAST WEEK. HE WOULD NOT EAT.",
-      solicitor:
-        "Her face hardens. She writes one word and underlines it twice: DREDGE.",
-      dredge:
-        "She writes: HE WALKS AS IF THE FLOOR OWES HIM RENT.",
-      cat:
-        "She writes: HE IS NOT A CAT. HE IS A WITNESS.",
-      ghost:
-        "She writes: THERE ARE FOUR. THEY ARE ANGRY. THEY ARE OWED ANSWERS.",
-      house:
-        "She writes: THE HOUSE EATS THE NIGHT. DO NOT BE HERE WHEN IT FINISHES.",
+      // Mrs. Crow's default response evolves with progress.
+      default(state) {
+        if (state.flags.won) return "She nods at you. 'Thank you, sir,' she says, with no slate at all.";
+        if (state.tokensCollected.length === 4) return "She writes only: NOW.";
+        if (state.tokensCollected.length === 3) return "She writes: ONE MORE. THE HOUSE IS LISTENING.";
+        if (state.tokensCollected.length >= 1) return "She writes: ONE LESS RESTLESS. THE OTHERS ARE STILL ANGRY.";
+        return "Mrs. Crow regards you mournfully and taps the slate beside her. (Try `read slate`.)";
+      },
+      will: "She writes, slowly: HE BROUGHT A NEW WILL. THE OLD ONE BURNT IN THE GRATE.",
+      edmund(state) {
+        if (state.flags.won) return "She writes nothing. She closes her eyes for a moment, only.";
+        return "She writes: A GOOD MAN. HE WAS FRIGHTENED THE LAST WEEK. HE WOULD NOT EAT.";
+      },
+      solicitor: "Her face hardens. She writes one word and underlines it twice: DREDGE.",
+      dredge: "She writes: HE WALKS AS IF THE FLOOR OWES HIM RENT.",
+      cat(state) {
+        if (state.flags.foundCatName) return "She writes: ATROPOS. HE IS OLDER THAN THE HOUSE. BE KIND.";
+        return "She writes: HE IS NOT A CAT. HE IS A WITNESS.";
+      },
+      ghost(state) {
+        const released = ["cassandraReleased", "julienReleased", "beatriceReleased", "hollisReleased"]
+          .filter((f) => state.flags[f]).length;
+        if (released === 0) return "She writes: THERE ARE FOUR. THEY ARE ANGRY. THEY ARE OWED ANSWERS.";
+        if (released < 4) return `She writes: ${4 - released} STILL WAIT.`;
+        return "She writes: ALL FOUR HEARD. NOW SAY THE NAME.";
+      },
+      house(state) {
+        if (state.flags.won) return "She writes nothing. The house is just a house.";
+        return "She writes: THE HOUSE EATS THE NIGHT. DO NOT BE HERE WHEN IT FINISHES.";
+      },
+      cassandra(state) {
+        if (state.flags.cassandraReleased) return "She writes: SHE WAS KIND TO ME. THANK YOU FOR HER.";
+        return "She writes: SHE TOOK HER TEA SWEET. HE KNEW.";
+      },
+      julien(state) {
+        if (state.flags.julienReleased) return "She writes: HE WROTE A POEM FOR HIS BROTHER. NEVER GAVE IT.";
+        return "She writes: A SCHOLAR. NOT A FIGHTER. HE KNEW BEFORE THE BLADE.";
+      },
+      beatrice(state) {
+        if (state.flags.beatriceReleased) return "She writes: SHE LOVED HER MUSIC BOX. THANK YOU.";
+        return "She writes: SHE WAS EIGHT. HE WAS NEAREST TO HER ROOM.";
+      },
+      hollis(state) {
+        if (state.flags.hollisReleased) return "She writes: HOLLIS WAS A GOOD MAN. THIRTY YEARS HERE.";
+        return "She writes: HE SAW. THAT WAS HIS CRIME.";
+      },
     },
   },
 
@@ -175,9 +212,21 @@ export const NPCS = {
     },
     takeable: false,
     dialogue: {
-      default: "The cat looks at you with an expression best described as *editorial*.",
+      default(state) {
+        const released = ["cassandraReleased", "julienReleased", "beatriceReleased", "hollisReleased"]
+          .filter((f) => state.flags[f]).length;
+        if (state.flags.won) return "The cat is on the foyer floor, one paw under it as if pinning the night down. It looks satisfied.";
+        if (released === 4) return "The cat sits with both paws together, ears forward, watching the foyer clock.";
+        if (released >= 2) return "The cat regards you a little less editorially than before. Approval, perhaps.";
+        return "The cat looks at you with an expression best described as *editorial*.";
+      },
       name: "It blinks once, slowly. The brass collar on its throat is just visible: ATROPOS.",
       atropos: "It twitches an ear, acknowledging itself.",
+      ghost(state) {
+        if (state.flags.won) return "It does not look at the chapel any more.";
+        return "It is looking, very steadily, at a point three feet above the foyer floor.";
+      },
+      dredge: "It hisses, briefly, with great precision.",
     },
     onCommand(state, cmd) {
       if (cmd.verb === "feed" || cmd.verb === "give") {

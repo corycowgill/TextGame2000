@@ -151,8 +151,24 @@ function init() {
       render.focusInput();
     });
 
-    // Click anywhere in the transcript to refocus the input.
-    transcript.addEventListener("click", () => {
+    // Click handler for the transcript:
+    //   - clicking a .noun span runs `examine <target>`
+    //   - clicking anywhere else just refocuses the input
+    transcript.addEventListener("click", (e) => {
+      const noun = e.target && e.target.closest && e.target.closest(".noun");
+      if (noun && noun.dataset && noun.dataset.target) {
+        const target = noun.dataset.target;
+        const cmd = `examine ${target}`;
+        render.echo(cmd);
+        try {
+          executeInput(cmd);
+        } catch (err) {
+          console.error(err);
+          render.system("(Something has gone wrong in the engine. See console.)");
+        }
+        render.focusInput();
+        return;
+      }
       render.focusInput();
     });
 

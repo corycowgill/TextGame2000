@@ -15,6 +15,31 @@ function appendLine(text, cls) {
   t.scrollTop = t.scrollHeight;
 }
 
+// Print a line with embedded clickable nouns.
+// `parts` is an array of strings (rendered as text) or
+// { noun: string, target: string } (rendered as a clickable span that, when
+// clicked, runs `examine <target>` via the global handler in main.js).
+export function printRich(parts, cls) {
+  const t = transcriptEl();
+  if (!t) return;
+  const div = document.createElement("div");
+  div.className = "line" + (cls ? " " + cls : "");
+  for (const p of parts) {
+    if (typeof p === "string") {
+      div.appendChild(document.createTextNode(p));
+    } else if (p && p.noun) {
+      const span = document.createElement("span");
+      span.className = "noun";
+      span.textContent = p.noun;
+      span.dataset.target = p.target || p.noun;
+      span.title = `examine ${p.target || p.noun}`;
+      div.appendChild(span);
+    }
+  }
+  t.appendChild(div);
+  t.scrollTop = t.scrollHeight;
+}
+
 export function print(text, cls) {
   if (text == null) return;
   if (Array.isArray(text)) {

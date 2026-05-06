@@ -60,7 +60,9 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 
 The input box supports **up/down arrow** for command history, **Tab** to
 autocomplete the word you're typing (cycles through matches on repeat), and
-**Esc** to clear the field.
+**Esc** to clear the field. Item and NPC names in room listings are
+**underlined and clickable** — click any of them to examine that thing. Use
+`brief` to get short descriptions on revisits, `verbose` to switch back.
 
 ## Scoring
 
