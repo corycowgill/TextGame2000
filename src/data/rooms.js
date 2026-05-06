@@ -6,12 +6,15 @@ export const ROOMS = {
   iron_gate: {
     id: "iron_gate",
     name: "The Iron Gate",
-    short: "An iron gate before the manor.",
+    short: "An iron gate before a fog-bound manor.",
     long:
-      "Wrought iron gates stand half-open before you, the Ashvale crest weeping with rust. " +
-      "Beyond, a gravel drive curves through fog toward the great house — black-windowed, " +
-      "silent. The coachman's lantern is already a small orange dot on the moor road. " +
-      "You will not be welcomed, but you may yet be admitted.",
+      "Wrought iron gates stand half-open before you, the Ashvale crest weeping orange rust " +
+      "into the lichen on the gate-piers. Beyond, a gravel drive curves north through fog " +
+      "toward the great house — black-windowed, silent, every chimney cold. The coachman's " +
+      "lantern is already a small orange dot on the moor road; the sound of his horses came " +
+      "back once on the wind, and then was swallowed. A wet smell rises from the box hedges: " +
+      "yew, wet stone, and something older that you cannot place. You will not be welcomed " +
+      "here, but you may yet be admitted.",
     exits: { north: "front_door", south: null, east: "garden", west: null },
     contents: ["telegram"],
   },
@@ -19,11 +22,14 @@ export const ROOMS = {
   front_door: {
     id: "front_door",
     name: "Before the Front Door",
-    short: "The locked front door of Ashvale Manor.",
+    short: "Locked black-oak doors under a carved stone porch.",
     long:
-      "A pair of black oak doors loom under a stone porch. The brass knocker is shaped like a " +
-      "fox biting its own tail. The doors are locked from within. A gravel path leads east " +
-      "around the house toward an overgrown garden, and south back to the gate.",
+      "A pair of black-oak doors loom under a stone porch, its lintel carved with grotesques " +
+      "whose faces the rain has worn nearly smooth. The brass knocker is shaped like a fox " +
+      "biting its own tail, polished by older hands than yours to a sullen gleam. The doors " +
+      "are locked from within — and not casually; the lock has been turned and the bolts " +
+      "thrown. A gravel path leads east around the house toward an overgrown garden; south, " +
+      "the drive runs back to the gate.",
     exits: { south: "iron_gate", east: "garden" },
     contents: [],
     onCommand(state, cmd) {
@@ -40,12 +46,15 @@ export const ROOMS = {
   garden: {
     id: "garden",
     name: "The Overgrown Garden",
-    short: "A weed-choked garden against the east wall.",
+    short: "A weed-choked garden, thorned, against the east wall.",
     long:
-      "Roses gone to thorn and bramble crowd the east face of the manor. A drawing-room " +
-      "window stands here, its catch broken — with a little force, it could be opened. The " +
-      "front of the house lies west; gravel paths circle further east into the hedge maze, " +
-      "though those gates appear bound shut from inside.",
+      "Roses gone to thorn and bramble crowd the east face of the manor, their last wet " +
+      "petals lying brown on the path like spent matches. A drawing-room window stands here, " +
+      "its leaded sash crooked in its frame and the catch broken — with a little force it " +
+      "could be opened, or with less, broken. A loose stone the size of a man's fist sits at " +
+      "the path's edge, where a gardener's boot once kicked it. The front of the house lies " +
+      "west; gravel paths circle further east into the hedge maze, but those wrought-iron " +
+      "gates have been bound shut from inside with twists of wire.",
     exits: { west: "front_door", north: "drawing_room_via_window", east: null },
     contents: ["loose_stone", "garden_window"],
     onCommand(state, cmd) {
@@ -85,11 +94,15 @@ export const ROOMS = {
   drawing_room: {
     id: "drawing_room",
     name: "The Drawing Room",
-    short: "A drawing room of dust-cloth furniture.",
+    short: "A drawing room of shrouded furniture and a cold grate.",
     long:
-      "Furniture stands shrouded in dust-cloths like a congregation of ghosts. A cold fire-grate, " +
-      "a crystal decanter on a sideboard, and a sealed letter on the mantel. Doorways open " +
-      "north into the foyer and east back to the broken window.",
+      "Furniture stands shrouded in dust-cloths like a congregation of mourners, the shapes " +
+      "beneath them only suggesting chairs, only suggesting a pianoforte. The grate is full " +
+      "of cold ash; a half-burnt log lies at the centre, charred to the shape of a fist. A " +
+      "crystal decanter on the sideboard catches what little light there is and throws it " +
+      "back in narrow, watery threads. A sealed letter waits on the mantel, propped against " +
+      "the carriage clock with a deliberation that feels recent. Doorways open north into " +
+      "the foyer and south back to the broken window.",
     exits: { north: "foyer", south: "garden_window_back" },
     contents: ["decanter", "sealed_letter"],
   },
@@ -108,14 +121,16 @@ export const ROOMS = {
   foyer: {
     id: "foyer",
     name: "The Foyer",
-    short: "The grand foyer of Ashvale Manor.",
+    short: "The grand foyer of Ashvale Manor — chandeliered, cold.",
     long(state) {
       const base =
-        "A black-and-white tiled floor stretches beneath a chandelier furred with cobweb. A " +
-        "tall grandfather clock ticks in the corner — slowly, almost grudgingly. Doorways " +
-        "lead south to the drawing room, west to the dining room, and east toward Edmund's " +
-        "study.";
-      const stairs = " The stair up to the bedrooms is roped off with black crepe. The cellar door down is barred.";
+        "A black-and-white tiled floor stretches beneath a chandelier furred grey with " +
+        "cobweb, its candles long since drowned in their own wax. A tall grandfather clock " +
+        "keeps watch in the corner — its tick is slow, almost grudging, as if it had grown " +
+        "tired of measuring time in this house. The air carries cold beeswax and colder " +
+        "lavender. Doorways lead south to the drawing room, west to the dining room, and " +
+        "east toward Edmund's study.";
+      const stairs = " The stair up to the bedrooms is roped off with black mourning crepe, knotted three times. The cellar door down is barred from this side, an iron nail driven through the latch.";
       const east = state.flags.eastSealBroken
         ? " The east wing doors stand open — their wax seal lies in fragments on the tiles."
         : " A heavy double-door east-northeast bears a black wax seal: 'BY ORDER OF THE EXECUTOR — DO NOT BREAK.'";
@@ -213,12 +228,14 @@ export const ROOMS = {
   east_corridor: {
     id: "east_corridor",
     name: "The East Corridor",
-    short: "A corridor in the east wing.",
+    short: "A long corridor of peeling damask wallpaper.",
     long:
-      "A long corridor with damask wallpaper peeling in slow curls. A portrait of Lady " +
-      "Cassandra Ashvale hangs at the far end, her painted gaze always on you no matter " +
-      "where you stand. North-east is the conservatory, glass and green; east, a paved " +
-      "path leads out into the hedge maze. The foyer lies south-west.",
+      "A long corridor where the green damask wallpaper is peeling in slow curls, like skin " +
+      "off something that died standing. A portrait of Lady Cassandra Ashvale hangs at the " +
+      "far end in a heavy gilt frame; her painted gaze finds you no matter where you stand " +
+      "on the runner, and the runner itself muffles your boots in a way that feels less " +
+      "like fabric and more like courtesy. North-east the conservatory shows green through " +
+      "its glass; east, a paved path leads out into the hedge maze. The foyer lies south-west.",
     exits: {
       southwest: "foyer",
       northeast: "conservatory",
@@ -230,13 +247,16 @@ export const ROOMS = {
   conservatory: {
     id: "conservatory",
     name: "The Conservatory",
-    short: "A glass-domed conservatory.",
+    short: "A glass-domed conservatory, rain-streaked and choked with green.",
     long:
-      "Iron arches hold up panels of green-stained glass; rain has been falling on the " +
-      "dome for so long that you cannot tell where the rain ends and the room begins. " +
-      "Three rare specimens stand on plinths around a wrought-iron tea table. On the " +
-      "table: a teacup, untouched; a heavy botanical guide, splayed open. The corridor " +
-      "lies south-west.",
+      "Iron arches hold up panels of green-stained glass, and rain has been falling on the " +
+      "dome for so long that you cannot tell where the rain ends and the room begins. The " +
+      "floor is laid in black-and-white tiles slick with condensation; ferns weep from " +
+      "brass urns onto a lead drip-tray. Three rare specimens stand on plinths around a " +
+      "wrought-iron tea table, each labelled in a fine, unsteady hand. On the table itself: " +
+      "a delicate teacup with a dark sediment at its bottom, untouched these many days; a " +
+      "heavy botanical guide, splayed open as if the reader had been called away mid-page. " +
+      "The corridor lies south-west.",
     exits: { southwest: "east_corridor" },
     contents: ["teacup", "botanical_guide", "foxglove", "monkshood_plant", "hemlock", "cassandra_ghost"],
   },
@@ -244,12 +264,14 @@ export const ROOMS = {
   hedge_maze: {
     id: "hedge_maze",
     name: "The Hedge Maze",
-    short: "Inside the hedge maze.",
+    short: "Inside the hedge maze; yew towers on either hand.",
     long:
-      "Yew hedges rise twice your height on either side, beaded with rain. The path " +
-      "branches confusingly, but you get the impression that all true paths bend inward. " +
-      "The corridor's door is to the west; the maze opens outward, north, into a small " +
-      "stone clearing.",
+      "Yew hedges rise twice your height on either side, rain-beaded, their leaves so dark " +
+      "they show as black in this grey light. The path branches confusingly, but there is " +
+      "a recurring impression — almost a conviction — that all true paths bend inward. " +
+      "Now and again you think you hear footsteps a hedge or two over, walking parallel; " +
+      "when you stop, they stop with you. The corridor's door is to the west; the maze " +
+      "opens outward, north, into a small stone clearing.",
     exits: { west: "east_corridor", north: "stone_folly" },
     contents: [],
   },
@@ -257,10 +279,13 @@ export const ROOMS = {
   stone_folly: {
     id: "stone_folly",
     name: "The Stone Folly",
-    short: "A stone folly at the maze's heart.",
+    short: "A roofless Greek folly at the maze's heart.",
     long:
-      "A miniature Greek folly stands at the maze's heart: four columns, no roof, a " +
-      "weathered stone bench. At its centre, a sundial. The hedge path leads back south.",
+      "A miniature Greek folly stands at the maze's heart: four columns of weathered Portland " +
+      "stone, no roof, a curved stone bench on which moss has begun a quiet career. At the " +
+      "centre, a sundial. The sun has not been seen for some time, but the gnomon still does " +
+      "its honest work; its shadow lies across the dial-face as if pointing at something it " +
+      "does not wish to name. The hedge path leads back south.",
     exits: { south: "hedge_maze" },
     contents: ["sundial"],
   },
@@ -270,9 +295,13 @@ export const ROOMS = {
     name: "The Dining Room",
     short: "A long dining room with sixteen empty chairs.",
     long:
-      "A long mahogany table runs the length of the room, set for sixteen and abandoned " +
-      "mid-meal. Wax has run down the candelabra in long pale tongues. A swing-door west " +
-      "leads to the servants' hall; the foyer lies east.",
+      "A long mahogany table, polished to the dull deep gleam of an old well, runs the " +
+      "length of the room and is set for sixteen. The setting is complete and abandoned " +
+      "mid-meal — knives placed, napkins folded, glasses filled at some point and now half-" +
+      "empty, the wine gone the colour of a bruise. Wax has run down the candelabra in long " +
+      "pale tongues onto the cloth. A fly that should have died with the season turns slow " +
+      "circles above the centrepiece. A swing-door west leads to the servants' hall; the " +
+      "foyer lies east.",
     exits: { east: "foyer", west: "servants_hall" },
     contents: ["candelabra"],
   },
@@ -280,11 +309,15 @@ export const ROOMS = {
   servants_hall: {
     id: "servants_hall",
     name: "The Servants' Hall",
-    short: "A plain kitchen and servants' hall.",
+    short: "A plain kitchen and servants' hall, cold-ranged.",
     long:
-      "Copper pans hang in tidy ranks above a cold range. A chalk-slate leans on the deal " +
-      "table. Mrs. Crow, the cook, sits very still in a wooden chair — alive, you think, " +
-      "though she has not blinked since you arrived. The dining room lies east.",
+      "Copper pans hang in tidy ranks above a cold range; a kettle on the back hob has gone " +
+      "the colour of slate. A chalk-slate leans on the deal table beside a pencil sharpened " +
+      "to nothing. Bunches of dried sage and rosemary swing slowly above the door, though " +
+      "there is no draught to move them. Mrs. Crow, the cook, sits very still in a wooden " +
+      "chair with her hands folded in her lap — alive, you decide on a second look, though " +
+      "she has not blinked since you arrived, and the apron on her knees has not stirred " +
+      "even with her breath. The dining room lies east.",
     exits: { east: "dining_room" },
     contents: ["mrs_crow", "chalk_slate"],
   },
@@ -292,12 +325,16 @@ export const ROOMS = {
   study: {
     id: "study",
     name: "Edmund's Study",
-    short: "The late Lord Edmund's private study.",
+    short: "Edmund's private study, gas-lit, occupied.",
     long:
-      "A green-shaded lamp, an ink-blotter, a wall of leather spines. Lord Edmund Ashvale " +
-      "sits at his desk as though merely tired — head bowed, a glass of brandy untouched at " +
-      "his elbow. His pocket watch, on a chain across his waistcoat, has stopped at 11:47. " +
-      "A locked drawer in the desk seems to want examining. The foyer lies west.",
+      "A green-shaded reading lamp on the desk, its gas turned low, throws a bilious light " +
+      "across the blotter and onto a wall of leather spines whose gilt lettering glints back " +
+      "as though rationed. An ink-pot stands open; a steel-nibbed pen has been laid down " +
+      "mid-sentence on a half-finished letter. Lord Edmund Ashvale sits at his desk as " +
+      "though merely tired — head bowed, his right hand still loose around the pen, a " +
+      "tumbler of brandy untouched at his elbow. His pocket watch, on a chain across his " +
+      "waistcoat, has stopped at 11:47, the second hand quivering against the eleven. A " +
+      "locked drawer in the desk seems to want examining. The foyer lies west.",
     exits: { west: "foyer" },
     contents: ["edmund_body", "desk_drawer", "brass_lamp"],
   },
@@ -307,10 +344,14 @@ export const ROOMS = {
   west_corridor: {
     id: "west_corridor",
     name: "The West Corridor",
-    short: "A corridor in the west wing.",
+    short: "A corridor papered in dried-rose damask.",
     long:
-      "Damask wallpaper here is the colour of dried roses. The corridor opens north into " +
-      "Edmund's library and west into the long portrait gallery. The foyer lies south-east.",
+      "Damask wallpaper here is the colour of dried roses pressed in a missal, and gives off " +
+      "a faint, dusty perfume of just that kind. A long Persian runner, faded almost to " +
+      "mouse, deadens your footfalls; on either side of the runner the floorboards have " +
+      "been polished, but not recently. A pair of gas-jets on the wall hiss low without " +
+      "quite illuminating. The corridor opens north into Edmund's library and west into the " +
+      "long portrait gallery. The foyer lies south-east.",
     exits: {
       southeast: "foyer",
       north: "library",
@@ -322,11 +363,15 @@ export const ROOMS = {
   library: {
     id: "library",
     name: "The Library",
-    short: "Edmund's private library.",
+    short: "Edmund's library — three walls of legal spine.",
     long:
-      "Floor-to-ceiling shelves of leather spines: legal commentaries, estate ledgers, " +
-      "and one shelf of poetry that does not match the rest. A reading chair sits angled " +
-      "to a cold fire. The corridor is south.",
+      "Floor-to-ceiling shelves of leather spines: legal commentaries in calf, estate " +
+      "ledgers in buckram, twenty bound years of *The Solicitor's Quarterly* in matching " +
+      "burgundy — and, at eye-height, one shelf of poetry that does not match the rest in " +
+      "either binding or temperament. A wing-back reading chair sits angled to a cold " +
+      "grate, its leather worn in the particular way that is left by one man's elbow on " +
+      "one armrest over a great many evenings. A standing desk near the window holds a " +
+      "brass-bound blotter and a silver inkpot, dry. The corridor is south.",
     exits: { south: "west_corridor" },
     contents: ["legal_books", "poetry_shelf", "green_book"],
   },
@@ -334,13 +379,14 @@ export const ROOMS = {
   portrait_gallery: {
     id: "portrait_gallery",
     name: "The Portrait Gallery",
-    short: "A long gallery of family portraits.",
+    short: "A long gallery of four family portraits in gilt frames.",
     long(state) {
       const base =
-        "A long gallery, wood-panelled, hung with four oil portraits in heavy gilt frames. " +
-        "Each plaque bears a name and, beneath it, a date and cause: the dates are all this " +
-        "year; the causes vary. A polished bench runs the length of the gallery. The " +
-        "corridor is east.";
+        "A long gallery, wood-panelled in dark oak, hung with four oil portraits in heavy " +
+        "gilt frames. Each plaque bears a name and, beneath it, a date and a cause: the " +
+        "dates are all this year; the causes vary; the spelling of the causes is the careful " +
+        "spelling of a man who knew their meaning. A polished bench runs the length of the " +
+        "gallery — the kind put there for mourners, not for visitors. The corridor is east.";
       const passage = state.flags.passageOpened
         ? " A panel behind Edmund's portrait has swung inward; an unlit passage opens north."
         : "";
@@ -374,12 +420,14 @@ export const ROOMS = {
   hidden_passage: {
     id: "hidden_passage",
     name: "The Hidden Passage",
-    short: "A narrow passage behind the portraits.",
+    short: "A narrow servants' passage behind the portraits.",
     long:
-      "A panelled servants' passage, scarcely wide enough for a man's shoulders. Dust on " +
-      "the floor lies thick except for a single set of recent footprints — out, not in. A " +
-      "small writing-shelf is set into the wainscoting, with a leather diary and a silver " +
-      "letter opener resting on its surface.",
+      "A panelled servants' passage, scarcely wide enough for a man's shoulders, smelling " +
+      "of cold plaster and old hessian. Dust on the floor lies thick except for a single " +
+      "set of recent footprints — out, not in; a man's boot, narrow, with a worn heel. A " +
+      "small writing-shelf is set into the wainscoting, the gas-jet stub above it long " +
+      "since exhausted; on its surface, a leather diary lies closed beside a silver letter " +
+      "opener, the latter laid as if just put down by a hand that intended to come back.",
     exits: { south: "portrait_gallery" },
     contents: ["julien_diary", "silver_letter_opener", "julien_ghost"],
   },
@@ -389,12 +437,15 @@ export const ROOMS = {
   landing: {
     id: "landing",
     name: "The Upstairs Landing",
-    short: "A galleried landing with a rotten balcony.",
+    short: "A galleried landing with a treacherous balcony north.",
     long:
-      "A galleried landing, ringed by closed doors. The floorboards on the way to the " +
-      "nursery (north) look unwell — discoloured, sagging, marked at one place by a " +
-      "missing nail. East lies the master bedroom; west, a linen closet; the stair down " +
-      "returns you to the foyer.",
+      "A galleried landing rings the foyer at the upper storey, plaster ceiling above " +
+      "ribbed with old beams, all the bedroom doors closed and the keys pulled. The " +
+      "floorboards on the balcony to the nursery (north) look distinctly unwell — " +
+      "discoloured, sagging in places, marked by a missing nail and by a stain along one " +
+      "seam that is the wrong sort of brown. From below, the foyer's tiles look very far " +
+      "down. East lies the master bedroom; west, a linen closet; the stair down returns " +
+      "you to the foyer.",
     exits: {
       down: "foyer",
       east: "master_bedroom",
@@ -420,11 +471,14 @@ export const ROOMS = {
   master_bedroom: {
     id: "master_bedroom",
     name: "The Master Bedroom",
-    short: "Edmund and Cassandra's bedroom.",
+    short: "Edmund and Cassandra's bedroom — very still.",
     long:
-      "A four-poster bed, sheets drawn taut as if for a guest. A vanity with a single " +
-      "silver-backed brush. A dressing screen. The room smells of dried lavender and, " +
-      "underneath, of something sharper. The landing lies west.",
+      "A four-poster bed of dark walnut, its dark-green curtains tied back, the sheets " +
+      "drawn taut as if in expectation of a guest. A vanity holds a single silver-backed " +
+      "brush still threaded with one long pale hair. A dressing screen of painted silk " +
+      "shows herons stepping through reeds, the silk discoloured along its lower hem. The " +
+      "room smells of dried lavender and, beneath that, of something sharper and more " +
+      "chemical that the lavender was hung to disguise. The landing lies west.",
     exits: { west: "landing" },
     contents: ["vanity_mirror", "lavender_pouch"],
   },
@@ -432,12 +486,15 @@ export const ROOMS = {
   linen_closet: {
     id: "linen_closet",
     name: "The Linen Closet",
-    short: "A narrow linen closet.",
+    short: "A narrow linen closet smelling of cedar.",
     long:
-      "Shelves of folded sheets and pillow-slips. The smell is of cedar and slow time. " +
-      "On the lowest shelf, where a child might once have hidden, lie a small enamelled " +
-      "music box, a silver locket, and an iron crowbar that does not match the rest. " +
-      "The landing is east.",
+      "Shelves of folded sheets and pillow-slips arranged with army precision, their " +
+      "cotton scenting the air with cedar and slow time. A child's pencilled height-marks " +
+      "march up the inside of the doorframe; the last is dated last spring, and signed in " +
+      "an unsteady B. On the lowest shelf, where a child might once have hidden, lie a " +
+      "small enamelled music box, a silver locket on its chain, and an iron crowbar that " +
+      "does not match the rest of the closet's furnishings in any respect. The landing is " +
+      "east.",
     exits: { east: "landing" },
     contents: ["music_box", "silver_locket", "crowbar"],
   },
@@ -445,12 +502,16 @@ export const ROOMS = {
   nursery: {
     id: "nursery",
     name: "The Nursery",
-    short: "Beatrice's nursery.",
+    short: "Beatrice's nursery, ceilinged with painted constellations.",
     long:
-      "A small bed, a rocking horse, a doll's house with all the doll-house lights lit. " +
-      "Beatrice is in the bed; her cheek rests on the pillow exactly as a child sleeping " +
-      "would, but she does not breathe. The ceiling is starred with painted constellations. " +
-      "The landing lies south.",
+      "A small bed under a coverlet stitched with stars, a rocking horse paused in its " +
+      "creak, a doll's house in which all the doll-house lights are lit (which is " +
+      "impossible — they are painted on the windows in yellow oil). Beatrice is in the " +
+      "bed; her cheek rests on the pillow exactly as a child sleeping would, dark hair " +
+      "across her face, but she does not breathe and has not for some time. The ceiling " +
+      "is starred with hand-painted constellations in a good cobalt blue, accurate to the " +
+      "season — the Pleiades clustered in their proper place, and Orion at the foot of " +
+      "the bed. The landing lies south.",
     exits: { south: "nursery_back" },
     contents: ["beatrice_bed", "rocking_horse", "beatrice_ghost"],
   },
@@ -472,11 +533,14 @@ export const ROOMS = {
   cellar_stair: {
     id: "cellar_stair",
     name: "The Cellar Stair",
-    short: "A narrow stair descending into the cellars.",
+    short: "A narrow flagstone stair plunging into the cellars.",
     long:
-      "A flagstone stair plunges down between damp brick walls. Cobwebs hang in heavy " +
-      "festoons. A landing at the bottom branches: north to the wine cellar, east to the " +
-      "boiler room. The stair up returns you to the foyer.",
+      "A flagstone stair plunges down between damp brick walls beaded with cold sweat. " +
+      "Cobwebs hang in heavy festoons from a low groined ceiling, each web hung with the " +
+      "small grey corpses of last year's flies. A draught from below carries the smell of " +
+      "coal-dust and ice in equal measure, and somewhere beneath you there is a sound " +
+      "almost like someone breathing slowly. A landing at the bottom branches: north to " +
+      "the wine cellar, east to the boiler room. The stair up returns you to the foyer.",
     dark: true,
     exits: {
       up: "foyer",
@@ -489,10 +553,14 @@ export const ROOMS = {
   wine_cellar: {
     id: "wine_cellar",
     name: "The Wine Cellar",
-    short: "The wine cellar.",
+    short: "The Ashvale wine cellar, deep in dust.",
     long:
-      "Racks of bottles, dust an inch thick on each. A small standing desk by the door, " +
-      "with a household ledger left open and a brass lamp turned to its lowest. The cellar " +
+      "Racks of bottles stretch into shadow on either hand, dust an inch thick on every " +
+      "shoulder, the labels blistered illegible by damp. A small standing desk by the door " +
+      "bears the household ledger, left open at this autumn's entries in a cramped careful " +
+      "hand, with a brass lamp turned to its lowest beside it. The flagstones are grouted " +
+      "with damp; somewhere, water drips with the regularity of a metronome. The air " +
+      "carries the sweet vinegar smell of wine that has begun, slowly, to turn. The cellar " +
       "stair lies south.",
     dark: true,
     exits: { south: "cellar_stair" },
@@ -502,12 +570,15 @@ export const ROOMS = {
   boiler_room: {
     id: "boiler_room",
     name: "The Boiler Room",
-    short: "A coal-fired boiler room.",
+    short: "A coal-fired boiler room, riveted iron and dead clinker.",
     long(state) {
       const base =
-        "A vast iron boiler, dormant tonight, dominates the room. From its dome, three " +
-        "valves run to three labelled pipes: HALL, WINE, CHUTE. A small brass plate is " +
-        "screwed to the boiler's flank. The cellar stair lies west; the coal chute is east — ";
+        "A vast iron boiler, riveted and dormant, dominates the room — the great barrel of " +
+        "it cold, the firebox door ajar on a black mouth full of dead clinker, ash drifting " +
+        "out across the flagstones in long tongues. From its dome, three valves run to " +
+        "three labelled pipes: HALL, WINE, CHUTE. A small brass plate is screwed to the " +
+        "boiler's flank, its engraving still bright. The cellar stair lies west; the coal " +
+        "chute is east — ";
       const tail = state.flags.chuteThawed
         ? "the ice that sealed it has thawed away."
         : "but a wall of ice has grown over the doorway from inside.";
@@ -527,12 +598,15 @@ export const ROOMS = {
   coal_chute: {
     id: "coal_chute",
     name: "The Coal Chute",
-    short: "The coal chute.",
+    short: "The coal chute, brick-walled, sloped.",
     long:
-      "A narrow brick room with a sloped chute rising to a hatch in the side of the house. " +
-      "Mr. Hollis lies at the foot of the chute, where he must have struck his head when he " +
-      "fell — or was helped to fall. His right hand still grips a brass pocket watch. The " +
-      "boiler room lies west.",
+      "A narrow brick room with a sloped chute rising to a coal-hatch in the side of the " +
+      "house; the hatch is shut against the night, and the room is darker than the cellars " +
+      "above it. Coal dust lies black on every surface and softens every sound to a kind " +
+      "of cotton silence. Mr. Hollis lies at the foot of the chute, face-down on coal-" +
+      "black flagstones, where he must have struck his head when he fell — or was helped " +
+      "to fall. His right hand still grips a brass pocket watch as if he had been showing " +
+      "the time to someone. The boiler room lies west.",
     dark: true,
     exits: { west: "boiler_room" },
     contents: ["hollis_body", "hollis_ghost", "hollis_watch"],
@@ -543,11 +617,14 @@ export const ROOMS = {
   crypt_stair: {
     id: "crypt_stair",
     name: "The Crypt Stair",
-    short: "A stone stair winding down.",
+    short: "A spiral stone stair of older work.",
     long:
-      "A spiral stair of dressed stone, older than the house above. The wall is cold to " +
-      "the touch and slightly damp. The stair winds down to a vault. The grandfather " +
-      "clock-case stands open above, behind you.",
+      "A spiral stair of dressed stone, older than the house above it by some centuries; " +
+      "the stonework is precise in a way the manor's brickwork is not, and the wall is cold " +
+      "and damp to the touch. Initials have been scratched into one block at shoulder " +
+      "height — A.A., A.A., A.A. — like a tally kept by a man counting his children. The " +
+      "stair winds down to a vault. The grandfather clock-case stands open above, behind " +
+      "you, ticking in a way that no longer sounds entirely like ticking.",
     dark: true,
     exits: { up: "foyer", down: "family_crypt" },
     contents: [],
@@ -556,12 +633,15 @@ export const ROOMS = {
   family_crypt: {
     id: "family_crypt",
     name: "The Family Crypt",
-    short: "The Ashvale family crypt.",
+    short: "The Ashvale family crypt, vaulted, lined with sarcophagi.",
     long:
-      "A long vaulted chamber, low-roofed, lined with stone sarcophagi. Each bears a brass " +
-      "plaque: ASHVALE, ASHVALE, ASHVALE, generations of them. At the far end, a fresh " +
-      "sarcophagus stands open and empty, ready for a body that has not yet arrived. Beyond " +
-      "it, an iron-bound door east leads to the chapel. The stair lies west — and up.",
+      "A long vaulted chamber, low-roofed, lined with stone sarcophagi in two long rows. " +
+      "Each bears a brass plaque — ASHVALE, ASHVALE, ASHVALE — the brass dulled to dark " +
+      "gold, the names beneath them stretching back in an order that begins to seem less " +
+      "like generations and more like one life rehearsed. The air is still and very cold; " +
+      "your breath shows. At the far end, a fresh sarcophagus stands open and empty, ready " +
+      "for a body that has not yet arrived. Beyond it, an iron-bound door east leads to " +
+      "the chapel. The stair lies west — and up.",
     dark: true,
     exits: { west: "crypt_stair", east: "family_chapel" },
     contents: ["empty_sarcophagus"],
@@ -573,10 +653,12 @@ export const ROOMS = {
     short: "The family chapel.",
     long(state) {
       const base =
-        "A small private chapel beneath the house: stone altar, four iron sconces, four " +
-        "black candles, and at the centre of the floor a séance circle inlaid in brass. " +
-        "Four sigils mark the four cardinal points of the circle, each shaped like one of " +
-        "the spirit-tokens you have recovered.";
+        "A small private chapel beneath the house: a stone altar plain as a tomb, four " +
+        "iron sconces driven into the walls, four black candles set in them, and at the " +
+        "centre of the floor a séance circle inlaid in brass. Four sigils mark the four " +
+        "cardinal points of the circle, each shaped like one of the spirit-tokens you have " +
+        "recovered. The air is colder here than in the crypt, and it carries the smell of " +
+        "beeswax, of old incense, and of waiting.";
       const candles = state.flags.candlesLit ? " The four candles are burning." : " The candles are unlit.";
       const tokens = state.flags.tokensPlaced ? " The four tokens lie on their sigils." : "";
       return base + candles + tokens + " The crypt lies west.";
