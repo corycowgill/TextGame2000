@@ -153,3 +153,57 @@ export const KILLER_LETTERS = {
 };
 
 export const KILLER_NAME = "pemberton dredge";
+
+// Atmospheric ambient lines. The engine prints one every few turns, picked
+// from the pool whose `when(state)` matches. Each line should be brief and
+// non-blocking - flavor only, never a clue.
+export const AMBIENT_LINES = [
+  // Anywhere
+  { when: () => true, text: "Somewhere in the manor, a clock chimes the half-hour." },
+  { when: () => true, text: "A draught from nowhere stirs the dust." },
+  { when: () => true, text: "The wind on the moor leans against the windows." },
+  { when: () => true, text: "A single dry leaf scrapes across a sill." },
+  { when: () => true, text: "The house breathes with you, slowly." },
+  { when: (s) => s.flags.catFed, text: "The cat regards you with editorial patience." },
+
+  // Foyer-specific
+  { when: (s) => s.currentRoom === "foyer", text: "The grandfather clock's pendulum hesitates, then resumes." },
+
+  // Outside
+  { when: (s) => s.currentRoom === "iron_gate" || s.currentRoom === "front_door" || s.currentRoom === "garden",
+    text: "Fog rolls in heavier off the moor." },
+
+  // Conservatory / east wing
+  { when: (s) => s.currentRoom === "conservatory" && !s.flags.cassandraReleased,
+    text: "Rain ticks against the glass dome, slow and exact." },
+  { when: (s) => s.currentRoom === "hedge_maze" || s.currentRoom === "stone_folly",
+    text: "Wet hedge-leaves brush your sleeve." },
+
+  // West wing
+  { when: (s) => s.currentRoom === "library", text: "Pages somewhere settle, as if a book has just been put down." },
+  { when: (s) => s.currentRoom === "portrait_gallery" && !s.flags.julienReleased,
+    text: "The eyes in the portraits do not quite stop following you." },
+
+  // Upstairs
+  { when: (s) => s.currentRoom === "nursery" && !s.flags.beatriceReleased,
+    text: "From the doll's house, very softly, a music-box phrase begins and stops." },
+  { when: (s) => s.currentRoom === "landing", text: "The balcony's bad board sighs, even when you don't step on it." },
+
+  // Cellar
+  { when: (s) => /^(cellar_stair|wine_cellar|boiler_room|coal_chute)$/.test(s.currentRoom) && !s.flags.lampLit,
+    text: "Something small moves in the dark, two paces ahead, and stops." },
+  { when: (s) => /^(cellar_stair|wine_cellar|boiler_room|coal_chute)$/.test(s.currentRoom) && s.flags.lampLit,
+    text: "The lamp's flame leans away from a draught you can't feel." },
+
+  // Crypt
+  { when: (s) => s.currentRoom === "family_crypt" || s.currentRoom === "crypt_stair",
+    text: "The stone here is older than the house, and colder." },
+  { when: (s) => s.currentRoom === "family_chapel" && !s.flags.candlesLit,
+    text: "The four black candles wait, perfectly upright." },
+  { when: (s) => s.currentRoom === "family_chapel" && s.flags.candlesLit && !s.flags.won,
+    text: "The candle flames lean inward, toward the circle, all four together." },
+
+  // Late game
+  { when: (s) => s.tokensCollected.length === 4 && !s.flags.won,
+    text: "The grandfather clock in the foyer ticks more slowly now. It is waiting." },
+];

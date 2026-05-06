@@ -37,13 +37,59 @@ function init() {
     const notice = document.getElementById("boot-notice");
     if (notice) notice.remove();
 
+    // Command history: up/down arrows recall previous inputs.
+    const history = [];
+    let historyIndex = -1;
+    let inProgress = "";
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowUp") {
+        if (history.length === 0) return;
+        if (historyIndex === -1) {
+          // First press: stash whatever the user is mid-typing.
+          inProgress = input.value;
+          historyIndex = history.length - 1;
+        } else if (historyIndex > 0) {
+          historyIndex--;
+        }
+        input.value = history[historyIndex];
+        // Move caret to end after the value updates.
+        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+        e.preventDefault();
+      } else if (e.key === "ArrowDown") {
+        if (historyIndex === -1) return;
+        if (historyIndex < history.length - 1) {
+          historyIndex++;
+          input.value = history[historyIndex];
+        } else {
+          historyIndex = -1;
+          input.value = inProgress;
+          inProgress = "";
+        }
+        setTimeout(() => input.setSelectionRange(input.value.length, input.value.length), 0);
+        e.preventDefault();
+      } else if (e.key === "Escape") {
+        input.value = "";
+        historyIndex = -1;
+        inProgress = "";
+      }
+    });
+
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const value = input.value;
       input.value = "";
+      historyIndex = -1;
+      inProgress = "";
       if (!value.trim()) {
         render.focusInput();
         return;
+      }
+      // Don't push duplicates of the most recent entry.
+      if (history.length === 0 || history[history.length - 1] !== value) {
+        history.push(value);
+        // Keep history bounded.
+        if (history.length > 200) history.shift();
       }
       render.echo(value);
       try {

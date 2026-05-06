@@ -3,7 +3,7 @@
 import { ROOMS } from "./data/rooms.js";
 import { ITEMS, itemDesc } from "./data/items.js";
 import { NPCS } from "./data/npcs.js";
-import { HINTS, NOTEBOOK_ENTRIES, KILLER_NAME, KILLER_LETTERS } from "./data/clues.js";
+import { HINTS, NOTEBOOK_ENTRIES, KILLER_NAME, KILLER_LETTERS, AMBIENT_LINES } from "./data/clues.js";
 import { parse, isDirection } from "./parser.js";
 import * as render from "./render.js";
 
@@ -216,9 +216,13 @@ function enterRoom(roomId, silent = false) {
         continue;
       }
     }
+    const firstVisit = !state.visited.has(target);
     state.currentRoom = target;
     state.visited.add(target);
     if (!silent) describeRoom(true);
+    // Auto-save the first time you enter any room - so a death right after
+    // exploring a new region doesn't undo your progress.
+    if (firstVisit && !state.over) autoSave();
     return null;
   }
   return "(Movement loop detected.)";
@@ -501,16 +505,28 @@ function applySave(payload) {
   return true;
 }
 
-function vSave(cmd) {
-  const slot = (cmd.noun || "auto").toLowerCase().replace(/\s+/g, "_");
+function saveToSlot(slot) {
   try {
     const data = JSON.stringify(serializeState());
-    if (typeof localStorage === "undefined") return "(localStorage unavailable; save not stored.)";
+    if (typeof localStorage === "undefined") return false;
     localStorage.setItem(SAVE_PREFIX + slot, data);
-    return `Saved as '${slot}'. (Use 'load ${slot}' to restore.)`;
+    return true;
   } catch (e) {
-    return `Save failed: ${e.message}`;
+    console.warn("[Ashvale] save failed:", e);
+    return false;
   }
+}
+
+function vSave(cmd) {
+  const slot = (cmd.noun || "manual").toLowerCase().replace(/\s+/g, "_");
+  if (saveToSlot(slot)) return `Saved as '${slot}'. (Use 'load ${slot}' to restore.)`;
+  return "(Save failed. localStorage may be unavailable.)";
+}
+
+function autoSave() {
+  // Quietly snapshot state to the 'auto' slot. Used at milestones so deaths
+  // don't cost the player too much progress.
+  saveToSlot("auto");
 }
 
 function vLoad(cmd) {
@@ -815,6 +831,31 @@ function vScore() {
   ];
 }
 
+function currentExits() {
+  const r = room();
+  return Object.keys(r.exits || {}).filter((d) => r.exits[d]);
+}
+
+// Emit an atmospheric flavor line every so often, never twice the same line in
+// a row. Tuned to ~1-in-7 turns so it adds mood without being noisy.
+let lastAmbient = -1;
+function maybePrintAmbient() {
+  // Allow tests / debugging to disable ambient flavor entirely.
+  if (typeof globalThis !== "undefined" && globalThis.__ASHVALE_NO_AMBIENT__) return;
+  if (state.turnCount < 4) return; // give the player a moment to settle in
+  if (Math.random() > 1 / 7) return;
+  const candidates = [];
+  for (let i = 0; i < AMBIENT_LINES.length; i++) {
+    if (i === lastAmbient) continue;
+    const line = AMBIENT_LINES[i];
+    try { if (line.when(state)) candidates.push(i); } catch { /* skip */ }
+  }
+  if (candidates.length === 0) return;
+  const idx = candidates[Math.floor(Math.random() * candidates.length)];
+  lastAmbient = idx;
+  render.system(AMBIENT_LINES[idx].text);
+}
+
 function syncStatus() {
   const r = room();
   render.updateStatus({
@@ -822,14 +863,21 @@ function syncStatus() {
     turnCount: state.turnCount,
     lampOil: state.lampOil,
     lampLit: state.flags.lampLit,
+    exits: currentExits(),
   });
+}
+
+function vExits() {
+  const exits = currentExits();
+  if (exits.length === 0) return "There is no obvious way out.";
+  return "Obvious exits: " + exits.join(", ") + ".";
 }
 
 function vHelp() {
   return [
     "Commands:",
     "  Movement: north (n), south, east, west, up, down, ne, nw, se, sw",
-    "            enter <thing>, exit, climb, go <dir>",
+    "            enter <thing>, exit, climb, go <dir>, exits",
     "  Look:     look (l), examine <X> (x), read <X>, search <X>, listen, smell",
     "  Items:    take <X>, take all, drop <X>, inventory (i)",
     "  Use:      use <X>, use <X> on <Y>, light <X>, extinguish <X>",
@@ -837,7 +885,9 @@ function vHelp() {
     "            break <X> with <Y>, wind/play <X>, show <X> to <Y>",
     "  Talk:     talk to <NPC>, ask <NPC> about <topic>, say <word>",
     "  Save:     save [slot], load [slot], restart",
+    "            (auto-saves to slot 'auto' on each milestone)",
     "  Meta:     wait (z), again (g), help, hint, notebook, map, score, quit",
+    "  Input:    up/down arrows = command history, Esc = clear",
     "  Refer back to the most recent noun with `it`.",
   ];
 }
@@ -868,6 +918,7 @@ const HANDLERS = {
   show: vShow, give: vGive,
   save: vSave, load: vLoad, restart: vRestart,
   hint: vHint, notebook: vNotebook, score: vScore, map: vMap,
+  exits: vExits,
 };
 
 function dispatch(cmd) {
@@ -921,7 +972,7 @@ function dispatch(cmd) {
 
 const RECOVERY_VERBS = new Set(["restart", "load", "save", "help", "notebook", "score", "map"]);
 // Verbs that don't burn a turn (looking at notes, saving, etc.).
-const NO_TURN_VERBS = new Set(["save", "load", "restart", "help", "hint", "notebook", "score", "map", "quit"]);
+const NO_TURN_VERBS = new Set(["save", "load", "restart", "help", "hint", "notebook", "score", "map", "quit", "exits"]);
 
 export function executeInput(rawInput) {
   const cmd = parse(rawInput);
@@ -931,7 +982,11 @@ export function executeInput(rawInput) {
   // Game-over recovery: allow restart / load (so the player can revive from a
   // save) plus harmless meta verbs. Everything else bounces with a hint.
   if (state.over && cmd.kind === "command" && !RECOVERY_VERBS.has(cmd.verb)) {
-    render.system("The game is over. Type 'restart' (or 'load <slot>') to begin again.");
+    const hasAuto = typeof localStorage !== "undefined" && localStorage.getItem(SAVE_PREFIX + "auto");
+    const hint = hasAuto
+      ? "Type 'load auto' to recover from your last milestone, or 'restart' to begin again."
+      : "Type 'restart' to begin again, or 'load <slot>' if you saved earlier.";
+    render.system("The game is over. " + hint);
     return;
   }
 
@@ -954,6 +1009,7 @@ export function executeInput(rawInput) {
 
   // cmd.kind === "command"
   const flagsBefore = { ...state.flags };
+  const tokensBefore = state.tokensCollected.length;
   const out = dispatch(cmd);
   if (out != null) render.print(out);
   // Meta verbs (looking at your map / saving / asking for a hint) don't
@@ -961,6 +1017,17 @@ export function executeInput(rawInput) {
   if (!NO_TURN_VERBS.has(cmd.verb)) {
     state.turnCount += 1;
     state.lastCommand = cmd.raw;
+  }
+
+  // Milestone auto-save: a token was just recovered.
+  if (state.tokensCollected.length > tokensBefore && !state.over) {
+    autoSave();
+  }
+
+  // Occasional atmospheric flavor line. Skipped on look/examine and other
+  // verbs that don't move the world; only world-acting turns can trigger it.
+  if (!state.over && !NO_TURN_VERBS.has(cmd.verb)) {
+    maybePrintAmbient();
   }
 
   // Lamp/oil tick: consume oil only in dark rooms with no cat-light.

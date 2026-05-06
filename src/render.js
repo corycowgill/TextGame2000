@@ -57,15 +57,27 @@ export function clear() {
   if (t) t.innerHTML = "";
 }
 
-export function updateStatus({ roomName, turnCount, lampOil, lampLit }) {
+// Map full direction names to compact arrows for the status bar.
+const DIR_ARROWS = {
+  north: "N", south: "S", east: "E", west: "W",
+  up: "↑", down: "↓",
+  northeast: "NE", northwest: "NW", southeast: "SE", southwest: "SW",
+};
+
+export function updateStatus({ roomName, turnCount, lampOil, lampLit, exits }) {
   const r = document.getElementById("status-room");
   const t = document.getElementById("status-turn");
   const o = document.getElementById("status-oil");
+  const x = document.getElementById("status-exits");
   if (r && roomName != null) r.textContent = roomName;
   if (t && turnCount != null) t.textContent = `turn ${turnCount}`;
   if (o && lampOil != null) {
     if (!lampLit) o.textContent = "lamp: unlit";
     else o.textContent = `lamp: ${lampOil} oil`;
+  }
+  if (x && Array.isArray(exits)) {
+    if (exits.length === 0) x.textContent = "exits: none";
+    else x.textContent = "exits: " + exits.map((d) => DIR_ARROWS[d] || d).join(" ");
   }
 }
 

@@ -18,6 +18,7 @@ export const VERBS = {
   go: ["go", "walk", "move", "head", "travel"],
   enter: ["enter"],
   exit: ["exit", "leave", "out"],
+  exits: ["exits"],
   climb: ["climb"],
 
   // observation

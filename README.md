@@ -55,16 +55,30 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 | Items      | `take <X>`/`get <X>`/`pick up <X>`, `take all`, `drop <X>`, `inventory`/`i` |
 | Use        | `use <X>`, `use <X> on <Y>`, `light <X>`, `extinguish <X>`, `unlock <X> with <Y>`, `open`/`close`/`push`/`pull`/`turn <X>`, `break <X> with <Y>`, `wind <X>`, `play <X>`, `show <X> to <Y>`, `give <X> to <Y>` |
 | Talk       | `talk to <NPC>`, `ask <NPC> about <topic>`, `tell <NPC> about <topic>`, `say <word>`, `knock`, `feed <NPC>` |
-| Save       | `save [slot]`, `load [slot]`, `restart` |
-| Meta       | `wait`/`z`, `again`/`g`, `help`, `hint`, `notebook`, `map`, `score`, `quit` |
+| Save       | `save [slot]`, `load [slot]`, `restart` (auto-saves to slot `auto` on milestones) |
+| Meta       | `wait`/`z`, `again`/`g`, `exits`, `help`, `hint`, `notebook`, `map`, `score`, `quit` |
+
+The input box supports **up/down arrow** for command history and **Esc** to
+clear the field.
 
 Refer back to the most recent noun with `it`.
 
 ## Stuck?
 
 `hint` always tells you the next step. `notebook` shows what you've found and
-what initials you've collected. `map` shows the layout and which rooms you've
-visited.
+what initials you've collected. `map` opens a graphical map (Cytoscape.js,
+loaded on demand from a CDN — falls back to inline SVG if the CDN is blocked)
+with your current room highlighted. `exits` lists where you can go.
+
+If you die, the game auto-saves at every milestone (each new room, each token
+recovered). After a death, `load auto` puts you back at your last milestone;
+`restart` begins again from the gate.
+
+## Tests
+
+Headless playthrough tests live in `test/`. Run them from the repo root with
+`node test/e2e.mjs` and `node test/e2e_loss.mjs`. See `test/README.md` for
+details.
 
 ## Project layout
 
