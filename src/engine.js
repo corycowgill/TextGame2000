@@ -4,6 +4,7 @@ import { ROOMS } from "./data/rooms.js";
 import { ITEMS, itemDesc } from "./data/items.js";
 import { NPCS } from "./data/npcs.js";
 import { HINTS, NOTEBOOK_ENTRIES, KILLER_NAME, KILLER_LETTERS, AMBIENT_LINES } from "./data/clues.js";
+import { SCENERY } from "./data/scenery.js";
 import { parse, isDirection } from "./parser.js";
 import * as render from "./render.js";
 
@@ -287,7 +288,14 @@ function vLook() {
 function vExamine(cmd) {
   if (!cmd.noun) return "Examine what?";
   const res = resolveNoun(cmd.noun);
-  if (res.kind === "none") return `You see no ${cmd.noun} here.`;
+  if (res.kind === "none") {
+    const sc = lookupScenery(cmd.noun);
+    if (sc != null) {
+      state.lastNoun = cmd.noun;
+      return sc;
+    }
+    return `You see no ${cmd.noun} here.`;
+  }
   if (res.kind === "ambiguous") return disambiguate(cmd.noun, res.ids);
   state.lastNoun = cmd.noun;
   if (res.kind === "item") {
@@ -362,6 +370,34 @@ function vInventory() {
 function vWait() {
   state.turnCount += 0; // turn count incremented by main loop already
   return "Time passes.";
+}
+
+function lookupScenery(noun) {
+  const sc = SCENERY[state.currentRoom];
+  if (!sc || !sc.examine) return null;
+  const n = String(noun || "").toLowerCase().trim();
+  if (!n) return null;
+  for (const entry of sc.examine) {
+    for (const a of entry.aliases) {
+      const al = a.toLowerCase();
+      if (n === al || n.includes(al) || al.includes(n)) {
+        return typeof entry.text === "function" ? entry.text(state) : entry.text;
+      }
+    }
+  }
+  return null;
+}
+
+function vListen() {
+  const sc = SCENERY[state.currentRoom];
+  if (sc && sc.listen) return typeof sc.listen === "function" ? sc.listen(state) : sc.listen;
+  return "You hear nothing of note — only the slow breath of the house.";
+}
+
+function vSmell() {
+  const sc = SCENERY[state.currentRoom];
+  if (sc && sc.smell) return typeof sc.smell === "function" ? sc.smell(state) : sc.smell;
+  return "Old dust, mostly.";
 }
 
 function vRead(cmd) {
@@ -992,6 +1028,7 @@ function disambiguate(noun, ids) {
 
 const HANDLERS = {
   look: vLook, examine: vExamine,
+  listen: vListen, smell: vSmell,
   take: vTake, drop: vDrop, inventory: vInventory,
   help: vHelp, quit: vQuit, wait: vWait,
   read: vRead, search: vSearch,
