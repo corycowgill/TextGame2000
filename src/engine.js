@@ -269,6 +269,19 @@ function enterRoom(roomId, silent = false) {
       // Brief mode: short description on revisits, full on first visit.
       const useFull = firstVisit || !state.flags.brief;
       describeRoom(useFull);
+      // First-visit narrative beat — Vance's investigative voice landing
+      // in the scene. Lives in scenery data so room files stay structural.
+      if (firstVisit) {
+        const sc = SCENERY[target];
+        if (sc && sc.firstEnter) {
+          const beat = typeof sc.firstEnter === "function" ? sc.firstEnter(state) : sc.firstEnter;
+          if (beat) {
+            render.print("");
+            const lines = Array.isArray(beat) ? beat : [beat];
+            for (const line of lines) render.print(line);
+          }
+        }
+      }
     }
     // Auto-save the first time you enter any room - so a death right after
     // exploring a new region doesn't undo your progress.
