@@ -51,7 +51,8 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 | Category   | Commands |
 |------------|----------|
 | Movement   | `north`/`n`, `south`/`s`, `east`/`e`, `west`/`w`, `up`, `down`, `ne`, `nw`, `se`, `sw`, `enter <thing>`, `exit`, `climb`, `go <dir>` |
-| Look       | `look`/`l`, `examine <X>`/`x <X>`, `read <X>`, `search <X>`, `listen`, `smell` |
+| Look       | `look`/`l`, `examine <X>`/`x <X>`, `read <X>`, `listen`, `smell` |
+| Search     | `search <X>` — find things hidden on bodies, in drawers, vanities, wardrobes |
 | Items      | `take <X>`/`get <X>`/`pick up <X>`, `take all`, `drop <X>`, `inventory`/`i` |
 | Use        | `use <X>`, `use <X> on <Y>`, `light <X>`, `extinguish <X>`, `unlock <X> with <Y>`, `open`/`close`/`push`/`pull`/`turn <X>`, `break <X> with <Y>`, `wind <X>`, `play <X>`, `show <X> to <Y>`, `give <X> to <Y>` |
 | Talk       | `talk to <NPC>`, `ask <NPC> about <topic>`, `tell <NPC> about <topic>`, `say <word>`, `knock`, `feed <NPC>` |
