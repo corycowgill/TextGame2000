@@ -51,13 +51,13 @@ The parser handles `verb noun [prep noun]`, abbreviations, articles, and `it`.
 | Category   | Commands |
 |------------|----------|
 | Movement   | `north`/`n`, `south`/`s`, `east`/`e`, `west`/`w`, `up`, `down`, `ne`, `nw`, `se`, `sw`, `enter <thing>`, `exit`, `climb`, `go <dir>` |
-| Look       | `look`/`l`, `examine <X>`/`x <X>`, `read <X>`, `listen`, `smell` |
+| Look       | `look`/`l`, `examine <X>`/`x <X>`, `read <X>`, `listen`, `smell`, `taste`, `touch` |
 | Search     | `search <X>` — find things hidden on bodies, in drawers, vanities, wardrobes |
-| Items      | `take <X>`/`get <X>`/`pick up <X>`, `take all`, `drop <X>`, `inventory`/`i` |
-| Use        | `use <X>`, `use <X> on <Y>`, `light <X>`, `extinguish <X>`, `unlock <X> with <Y>`, `open`/`close`/`push`/`pull`/`turn <X>`, `break <X> with <Y>`, `wind <X>`, `play <X>`, `show <X> to <Y>`, `give <X> to <Y>` |
-| Talk       | `talk to <NPC>`, `ask <NPC> about <topic>`, `tell <NPC> about <topic>`, `say <word>`, `knock`, `feed <NPC>` |
+| Items      | `take <X>`/`get <X>`/`pick up <X>`, `take all`, `drop <X>`, `put <X> in <Y>`, `inventory`/`i` |
+| Use        | `use <X>`, `use <X> on <Y>`, `light <X>`, `extinguish <X>`, `lock`/`unlock <X> with <Y>`, `open`/`close`/`push`/`pull`/`turn <X>`, `break <X> with <Y>`, `pry <X> with <Y>`, `cut <X>`, `wind`/`play <X>`, `show`/`give <X> to <Y>`, `place <X>`, `test <X>`, `wear`/`remove <X>`, `tie <X> to <Y>` |
+| Talk       | `talk to <NPC>`, `ask <NPC> about <topic>`, `tell <NPC> about <topic>`, `say`/`name <word>`, `knock <X>`, `ring <X>`, `feed <NPC>`, `pray`, `eavesdrop` |
 | Save       | `save [slot]`, `load [slot]`, `restart` (auto-saves to slot `auto` on milestones) |
-| Meta       | `wait`/`z`, `again`/`g`, `exits`, `help`, `hint`, `notebook`, `map`, `score`, `quit` |
+| Meta       | `wait`/`z`, `again`/`g`, `exits`, `help`, `hint`, `notebook`, `map`, `score`, `quit`, `verbose`, `brief` |
 
 The input box supports **up/down arrow** for command history, **Tab** to
 autocomplete the word you're typing (cycles through matches on repeat), and
