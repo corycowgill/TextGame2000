@@ -150,7 +150,7 @@ export const ITEMS = {
 
   fob_key: {
     id: "fob_key",
-    names: ["fob key", "fob", "small key", "steel key"],
+    names: ["fob key", "fob", "key", "small key", "steel key"],
     short: "a small steel fob key",
     desc: "A small steel key, no bigger than a thumbnail, polished by years of waistcoat pocket. Edmund's, beyond doubt.",
     takeable: true,
@@ -185,6 +185,27 @@ export const ITEMS = {
         return "The drawer is locked. You'll need a key — and Edmund kept his own keys close.";
       }
       if (cmd.verb === "open" && state.flags.drawerOpened) return "The drawer is already open.";
+      // Accept "use <key> on drawer" as a synonym for "unlock drawer with <key>".
+      // Engine routes both `use X on drawer` (secondNoun=drawer) and `use drawer
+      // with X` (noun=drawer) here, so check whichever side names the key.
+      if (cmd.verb === "use") {
+        const noun = (cmd.noun || "").toLowerCase();
+        const sec = (cmd.secondNoun || "").toLowerCase();
+        const other = noun.includes("drawer") || noun.includes("desk") ? sec : noun;
+        const wantsKey = other.includes("key") || other.includes("fob");
+        if (!wantsKey) return null;
+        if (state.flags.drawerOpened) return "The drawer is already open.";
+        if (!state.inventory.includes("fob_key")) {
+          return "You don't have the right key. Edmund's fob key is on his watch chain — `search edmund` to take it.";
+        }
+        state.flags.drawerOpened = true;
+        placeInRoom("study", "edmund_keyring");
+        placeInRoom("study", "will_fragment");
+        return [
+          "The fob key turns. The drawer slides open.",
+          "Inside: a heavy iron keyring, and a half-burnt fragment of paper — the corner of a will, with a notary's seal still legible at one edge.",
+        ];
+      }
       return null;
     },
   },

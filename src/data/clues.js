@@ -19,8 +19,12 @@ export const HINTS = [
     text: "There is a sealed letter on the mantel. `read letter` may set the tone for the night.",
   },
   {
-    when: (s) => s.currentRoom === "study" && !s.flags.drawerOpened,
-    text: "Edmund's pocket watch is in the open. The desk drawer is locked. Edmund is not in a position to object.",
+    when: (s) => s.currentRoom === "study" && !s.flags.drawerOpened && !s.flags.foundFobKey,
+    text: "Edmund has a small fob key on his watch chain. `search edmund` to take it.",
+  },
+  {
+    when: (s) => s.currentRoom === "study" && !s.flags.drawerOpened && s.flags.foundFobKey,
+    text: "You have the fob key. `unlock drawer with key` (or `use key on drawer`).",
   },
   {
     when: (s) => s.flags.drawerOpened && !s.inventory.includes("edmund_keyring"),

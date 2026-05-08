@@ -137,14 +137,20 @@ function matchNoun(noun, candidateIds, table) {
   if (!noun) return [];
   const n = noun.toLowerCase().trim();
   const matches = [];
+  // Word-boundary contains: alias appears as whole word(s) in the input.
+  // Prevents short aliases ("key") from matching inside longer words ("keyring").
+  const containsWord = (haystack, needle) => {
+    const re = new RegExp(`(?:^|\\W)${needle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\W|$)`, "i");
+    return re.test(haystack);
+  };
   for (const id of candidateIds) {
     const entity = table[id];
     if (!entity) continue;
     const aliases = entity.names || [id];
     for (const a of aliases) {
       if (a === n) { matches.push(id); break; }
-      // multi-word alias contained in noun, or noun is a prefix of alias
-      if (n.includes(a) || a.startsWith(n)) { matches.push(id); break; }
+      // alias is a whole-word substring of input, or input is a prefix of alias
+      if (containsWord(n, a) || a.startsWith(n)) { matches.push(id); break; }
     }
   }
   return [...new Set(matches)];
@@ -1080,6 +1086,19 @@ function dispatch(cmd) {
       if (it.onCommand) {
         const out = it.onCommand(state, cmd);
         if (out != null) return out;
+      }
+    }
+    // For two-noun commands like `use key on drawer`, also consult the
+    // secondary noun's onCommand — so the target (drawer) can handle it
+    // even when the primary noun (key) doesn't.
+    if (cmd.secondNoun) {
+      const ids2 = matchNoun(cmd.secondNoun, scopeItems, ITEMS);
+      for (const id of ids2) {
+        const it = ITEMS[id];
+        if (it.onCommand) {
+          const out = it.onCommand(state, cmd);
+          if (out != null) return out;
+        }
       }
     }
     const npcIds = matchNoun(cmd.noun, roomNpcs, NPCS);
